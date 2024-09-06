@@ -5,7 +5,20 @@ import { Link as ScrollLink, Events } from 'react-scroll'
 import { useState, useEffect, ReactNode } from 'react'
 import { useScrollToAnchor } from '../../../utils/hooks/useScrollToAnchor'
 import FactCard from '../policyComponents/FactCard'
+<<<<<<< HEAD:frontend/src/pages/Policy/policySections/AddressingInequitiesTab.tsx
 import { youthFatalitiesFacts, homicideFacts, suicideFacts, economicResources, educationalResources, justiceResources, mentalHealthResources, communityResources } from '../policyContent/AddressingInequitiesContent'
+=======
+import {
+  youthFatalitiesFacts,
+  homicideFacts,
+  suicideFacts,
+  economicResources,
+  educationalResources,
+  justiceResources,
+  mentalHealthResources,
+  communityResources,
+} from '../policyContent/OurFindingsContent'
+>>>>>>> ad9403cb (Policy hub content enhancements and route config updates (#3625)):frontend/src/pages/Policy/policySections/OurFindingsTab.tsx
 import ResourceItem from '../policyComponents/ResourceItem'
 
 interface CombinedLinkProps {
@@ -28,7 +41,7 @@ function CombinedLink(props: CombinedLinkProps) {
   return null
 }
 
-export default function AddressingInequitiesTab() {
+export default function OurFindingsTab() {
   const [activeLink, setActiveLink] = useState<string | null>(null)
   const scrollToAnchor = useScrollToAnchor()
 
