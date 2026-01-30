@@ -138,7 +138,7 @@ export default function AboutUsPage() {
                   <HetLazyLoader offset={300} height={181} once>
                     <img
                       src={leader.imageUrl}
-                      alt=''
+                      alt={leader.name}
                       className='inline-block max-w-team-headshot rounded-md'
                     />
                   </HetLazyLoader>
