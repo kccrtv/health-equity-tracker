@@ -22,7 +22,9 @@ export default function SeedPage() {
           </h3>
           <p className='text-left'>
             The Health Equity Tracker's{' '}
-            <b>Software Engineering and Education Development (SEED) Program</b>{' '}
+            <strong>
+              Software Engineering and Education Development (SEED) Program
+            </strong>{' '}
             creates pathways into technology careers for individuals from
             underrepresented backgrounds while addressing critical health
             disparities through data and design. Housed at Morehouse School of
@@ -40,9 +42,9 @@ export default function SeedPage() {
           </h2>
           <p className='text-left'>
             SEED operates at the intersection of public health and technology,
-            emphasizing <b>coding through a social justice lens</b>. Over six
-            months, participants work flexibly (5-15 hours per week) alongside
-            experienced mentors, progressing through three phases:
+            emphasizing <strong>coding through a social justice lens</strong>.
+            Over six months, participants work flexibly (5-15 hours per week)
+            alongside experienced mentors, progressing through three phases:
           </p>
 
           <ul className='my-8 flex list-none flex-wrap pl-0'>
@@ -73,29 +75,29 @@ export default function SeedPage() {
           </h2>
           <p className='text-left'>
             While our program has primarily trained software engineers,{' '}
-            <b>
+            <strong>
               we recognize that advancing health equity requires diverse
               perspectives and skill sets
-            </b>
+            </strong>
             . We welcome individuals from various backgrounds who are passionate
             about using their talents to address health disparities:
           </p>
           <ul className='mx-16 my-8 list-disc pl-4 text-left'>
             <li>
-              <b>Aspiring developers</b> from non-traditional backgrounds and
-              career changers
+              <strong>Aspiring developers</strong> from non-traditional
+              backgrounds and career changers
             </li>
             <li>
-              <b>Students and professionals</b> in public health, policy, law,
-              design, data science, and related fields
+              <strong>Students and professionals</strong> in public health,
+              policy, law, design, data science, and related fields
             </li>
             <li>
-              <b>Community advocates</b> interested in learning how technology
-              can amplify their work
+              <strong>Community advocates</strong> interested in learning how
+              technology can amplify their work
             </li>
             <li>
-              <b>Anyone committed</b> to inclusive design and equity-centered
-              innovation
+              <strong>Anyone committed</strong> to inclusive design and
+              equity-centered innovation
             </li>
           </ul>
           <p className='text-left'>
@@ -128,12 +130,12 @@ export default function SeedPage() {
             </li>
           </ul>
           <p className='text-left'>
-            <b>Real-World Applications:</b> Our participants' work empowers
-            communities of color to advocate with evidence in city council
-            presentations, state legislature testimony, and policy reform
-            campaigns. The tools they build translate complex health data into
-            actionable insights that support prevention strategies, resource
-            allocation, and systemic change.
+            <strong>Real-World Applications:</strong> Our participants' work
+            empowers communities of color to advocate with evidence in city
+            council presentations, state legislature testimony, and policy
+            reform campaigns. The tools they build translate complex health data
+            into actionable insights that support prevention strategies,
+            resource allocation, and systemic change.
           </p>
           <h3 className='mr-auto text-left font-sans-title text-smallest-header leading-some-more-space'>
             Sustainability and Support

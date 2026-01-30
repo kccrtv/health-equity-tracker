@@ -48,9 +48,8 @@ import {
 } from './utils/internalRoutes'
 
 // Lazy Load components for code-splitting
-const AboutSeedPage = React.lazy(
-  async () => await import('./pages/AboutUs/SeedPage'),
-)
+const AboutSeedPage = React.lazy(() => import('./pages/AboutUs/SeedPage'))
+
 const AboutUsPage = React.lazy(
   async () => await import('./pages/AboutUs/AboutUsPage'),
 )
