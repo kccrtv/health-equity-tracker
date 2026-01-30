@@ -8,10 +8,7 @@ export default function SeedPage() {
       <section className='mx-auto flex w-svw max-w-lgplus flex-col justify-center px-8 py-16'>
         <header>
           <img src={SeedLogo} alt='SEED logo' className='mx-auto max-h-24' />
-          <h1
-            id='main'
-            className='my-8 font-bold font-sans-title text-alt-green text-big-header leading-normal'
-          >
+          <h1 className='my-8 font-bold font-sans-title text-alt-green text-big-header leading-normal'>
             About the SEED Program
           </h1>
         </header>
