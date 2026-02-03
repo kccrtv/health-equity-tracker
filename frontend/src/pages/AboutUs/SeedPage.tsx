@@ -32,9 +32,9 @@ export default function SeedPage() {
             50-year legacy in health equity with modern technology development.
             Participants contribute to the award-winning Health Equity
             Tracker—an open-source platform developed in collaboration with
-            Google.org that serves over 85,000 users annually—while gaining
-            hands-on experience with industry-standard tools including Google
-            Cloud Platform, TypeScript, React, and Python.
+            Google.org—while gaining hands-on experience with industry-standard
+            tools including Google Cloud Platform, TypeScript, React, and
+            Python.
           </p>
 
           <h2 className='pt-8 pb-4 font-medium font-sans-title text-small-header'>
@@ -64,11 +64,10 @@ export default function SeedPage() {
           <p className='text-left'>
             Through personalized mentorship, pair programming, and collaborative
             development practices, participants build professional portfolios
-            while creating real-world impact. Past participants have developed
-            features like our maternal mortality tracker, which visualizes
-            deaths per 100,000 live births disaggregated by state and race—a
-            tool now used by community advocates, educators, journalists, and
-            policymakers nationwide.
+            while creating real-world impact. Past participants have added
+            maternal mortality as an explorable data topic in the Health Equity
+            Tracker's capabilities—a tool now used by community advocates,
+            educators, journalists, and policymakers nationwide.
           </p>
           <h2 className='pt-8 pb-4 font-medium font-sans-title text-small-header'>
             Who We Welcome
@@ -117,8 +116,9 @@ export default function SeedPage() {
               employment offers citing their production experience
             </li>
             <li>
-              Features developed serve over 85,000 annual users across community
-              organizations, advocacy groups, and policymakers
+              Features developed served over 85,000 annual users in the year
+              following feature deployment across community organizations,
+              advocacy groups, and policymakers
             </li>
             <li>
               Built a community of contributors including the core engineering
@@ -176,8 +176,8 @@ export default function SeedPage() {
             equity-centered design, we're growing a new generation of
             professionals equipped to advance diversity, equity, and inclusion
             across the technology and healthcare sectors.
-            <br />
-            <br />
+          </p>
+          <p className='mr-auto text-left'>
             Interested in participating or supporting our work? Contact us at{' '}
             <a
               className='no-underline hover:underline'
@@ -187,15 +187,6 @@ export default function SeedPage() {
             </a>
             .
           </p>
-          <article className='mt-8 border-black border-t-1 border-solid'>
-            <p className='text-left italic'>
-              The SEED Program is made possible through partnerships with
-              Google.org, the Satcher Health Leadership Institute, and Morehouse
-              School of Medicine, with support from foundations, federal
-              agencies, and industry partners committed to health equity and
-              workforce diversity.
-            </p>
-          </article>
         </section>
       </section>
     </>
