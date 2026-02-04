@@ -78,15 +78,24 @@ export default function HetAppToolbar() {
       }
 
       if ('link' in value) {
+        const isExternal =
+          value.isExternal ||
+          value.link.startsWith('https://') ||
+          value.link.startsWith('http://')
+
         return (
           <div key={key} className='flex items-center gap-1'>
             <HetNavLink
               href={value.link}
               className='mx-2 my-0 w-auto px-2 font-medium font-sans-title text-navlink-color text-small'
+              {...(isExternal && {
+                target: '_blank',
+                rel: 'noopener noreferrer',
+              })}
             >
               {value.label}
             </HetNavLink>
-            {value.isExternal && <HetLaunchLink href={value.link} />}
+            {isExternal && <HetLaunchLink href={value.link} />}
           </div>
         )
       }

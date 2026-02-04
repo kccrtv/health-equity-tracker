@@ -56,8 +56,14 @@ export default function HetMobileAppToolbar() {
                 return (
                   <ListItem
                     key={subKey}
-                    component={Link}
-                    to={subKey}
+                    component={isExternal ? 'a' : Link}
+                    {...(isExternal
+                      ? {
+                          href: subKey,
+                          target: '_blank',
+                          rel: 'noopener noreferrer',
+                        }
+                      : { to: subKey })}
                     className='pl-8 no-underline'
                     onClick={() => setOpen(false)}
                   >
