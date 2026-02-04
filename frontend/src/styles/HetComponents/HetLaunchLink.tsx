@@ -18,7 +18,7 @@ const HetLaunchLink: React.FC<HetLaunchLinkProps> = ({ href, label }) => {
           : `Opens ${href} in a new window`
       }
     >
-      <LaunchRounded className='my-auto text-text' />
+      <LaunchRounded className='my-auto flex text-text' />
     </a>
   )
 }

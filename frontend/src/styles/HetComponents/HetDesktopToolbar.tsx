@@ -4,6 +4,7 @@ import AppBarLogo from '../../assets/AppbarLogo.png'
 import { EXPLORE_DATA_PAGE_LINK } from '../../utils/internalRoutes'
 import { NAVIGATION_STRUCTURE } from '../../utils/urlutils'
 import HetCTASmall from './HetCTASmall'
+import HetLaunchLink from './HetLaunchLink'
 import HetNavButton from './HetNavButton'
 import HetNavLink from './HetNavLink'
 
@@ -40,11 +41,32 @@ export default function HetAppToolbar() {
               onClose={handleClose}
               classes={{ paper: 'bg-white' }}
             >
-              {Object.entries(value.pages).map(([subKey, subValue]) => (
-                <MenuItem key={subKey} onClick={handleClose}>
-                  <HetNavLink href={subKey}>{subValue}</HetNavLink>
-                </MenuItem>
-              ))}
+              {Object.entries(value.pages).map(([subKey, subValue]) => {
+                const isExternal =
+                  typeof subValue === 'object'
+                    ? subValue.isExternal
+                    : subKey.startsWith('https://') ||
+                      subKey.startsWith('http://')
+                const label =
+                  typeof subValue === 'string' ? subValue : subValue.label
+
+                return (
+                  <MenuItem key={subKey} onClick={handleClose}>
+                    <div className='flex items-center gap-2'>
+                      <HetNavLink
+                        href={subKey}
+                        {...(isExternal && {
+                          target: '_blank',
+                          rel: 'noopener noreferrer',
+                        })}
+                      >
+                        {label}
+                      </HetNavLink>
+                      {isExternal && <HetLaunchLink href={subKey} />}
+                    </div>
+                  </MenuItem>
+                )
+              })}
             </Menu>
           </div>
         )
@@ -52,13 +74,15 @@ export default function HetAppToolbar() {
 
       if ('link' in value) {
         return (
-          <HetNavLink
-            key={key}
-            href={value.link}
-            className='mx-2 my-0 w-auto px-2 font-medium font-sans-title text-navlink-color text-small'
-          >
-            {value.label}
-          </HetNavLink>
+          <div key={key} className='flex items-center gap-1'>
+            <HetNavLink
+              href={value.link}
+              className='mx-2 my-0 w-auto px-2 font-medium font-sans-title text-navlink-color text-small'
+            >
+              {value.label}
+            </HetNavLink>
+            {value.isExternal && <HetLaunchLink href={value.link} />}
+          </div>
         )
       }
 
