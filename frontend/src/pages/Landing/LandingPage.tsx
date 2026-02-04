@@ -1,21 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
 import HetCTABig from '../../styles/HetComponents/HetCTABig'
-import {
-  ARTICLES_KEY_4,
-  fetchLandingPageNewsData,
-  REACT_QUERY_OPTIONS,
-} from '../../utils/blogUtils'
 import { usePrefersReducedMotion } from '../../utils/hooks/usePrefersReducedMotion'
 import { EXPLORE_DATA_PAGE_LINK } from '../../utils/internalRoutes'
 import LandingPageListItem from './LandingPageListItem'
 
 function LandingPage() {
-  useQuery({
-    queryKey: [ARTICLES_KEY_4],
-    queryFn: fetchLandingPageNewsData,
-    ...REACT_QUERY_OPTIONS,
-  })
-
   const prefersReducedMotion = usePrefersReducedMotion()
 
   return (
