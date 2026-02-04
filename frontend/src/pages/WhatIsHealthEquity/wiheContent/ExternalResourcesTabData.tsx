@@ -25,14 +25,14 @@ export const externalResourceMappings: ExternalResourceMapping[] = [
     categories: ['Demographics', 'Determinants of Health'],
   },
   {
-    href: 'satcherinstitute.org/news/how-can-we-use-data-to-inform-practices-to-advance-health-equity',
+    href: 'https://satcherinstitute.org/news/how-can-we-use-data-to-inform-practices-to-advance-health-equity',
     ariaLabel: 'Satcher Blog Post on Health Equity Data',
     imgSrc: '/img/stock/girls-studying.jpg',
     imgAlt: '',
     title: 'How can we use data to inform practices to advance health equity?',
     description: `In public health, much of our work depends on having accurate data, so we know what's happening both on the ground and at a population level.`,
     readMoreHref:
-      'satcherinstitute.org/news/how-can-we-use-data-to-inform-practices-to-advance-health-equity',
+      'https://satcherinstitute.org/news/how-can-we-use-data-to-inform-practices-to-advance-health-equity',
     categories: ['Public Health', 'Data Collection'],
   },
   {
