@@ -4,9 +4,14 @@ import type React from 'react'
 interface HetLaunchLinkProps {
   href: string
   label?: string
+  svgClassName?: string
 }
 
-const HetLaunchLink: React.FC<HetLaunchLinkProps> = ({ href, label }) => {
+const HetLaunchLink: React.FC<HetLaunchLinkProps> = ({
+  href,
+  label,
+  svgClassName,
+}) => {
   return (
     <a
       href={href}
@@ -18,7 +23,7 @@ const HetLaunchLink: React.FC<HetLaunchLinkProps> = ({ href, label }) => {
           : `Opens ${href} in a new window`
       }
     >
-      <LaunchRounded className='my-auto flex text-text' />
+      <LaunchRounded className={svgClassName || 'my-auto text-text'} />
     </a>
   )
 }

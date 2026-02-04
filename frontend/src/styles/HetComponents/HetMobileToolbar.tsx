@@ -66,7 +66,12 @@ export default function HetMobileAppToolbar() {
                         className='text-alt-black'
                         primary={label}
                       />
-                      {isExternal && <HetLaunchLink href={subKey} />}
+                      {isExternal && (
+                        <HetLaunchLink
+                          svgClassName='flex my-auto text-text'
+                          href={subKey}
+                        />
+                      )}
                     </div>
                   </ListItem>
                 )

@@ -62,7 +62,12 @@ export default function HetAppToolbar() {
                       >
                         {label}
                       </HetNavLink>
-                      {isExternal && <HetLaunchLink href={subKey} />}
+                      {isExternal && (
+                        <HetLaunchLink
+                          svgClassName='flex my-auto text-text'
+                          href={subKey}
+                        />
+                      )}
                     </div>
                   </MenuItem>
                 )
