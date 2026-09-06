@@ -16,6 +16,7 @@ import type {
 import {
   buildInsightFocusSuffix,
   generateCardInsight,
+  previewCardInsight,
   summarizePeerComparison,
 } from '../../utils/generateVisualizationInsight'
 import { getDataManager } from '../../utils/globals'
@@ -363,12 +364,26 @@ export default function InsightVisualizationCard({
               <HetHighlightedText section={insight} />
             </p>
             <p className='m-0 mt-2 text-alt-dark text-smallest'>
-              AI-generated. Verify with chart data.{' '}
               <FlagInsightButton
                 cacheKey={serverCacheKey ?? undefined}
                 content={insight.text}
                 topic={dataTypeConfig.dataTypeId}
                 onFlagged={handleFlagged}
+                onFetchPrompt={() =>
+                  previewCardInsight(
+                    scrollToHash,
+                    dataTypeConfig,
+                    demographicType,
+                    fips,
+                    queryResponses,
+                    isCompareCard,
+                    {
+                      activeDemographicGroup,
+                      selectedGroups,
+                      peerComparison: peerComparison ?? undefined,
+                    },
+                  )
+                }
               />
             </p>
           </>

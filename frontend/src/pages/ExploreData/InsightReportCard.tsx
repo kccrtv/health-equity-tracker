@@ -17,6 +17,7 @@ import FlagInsightButton from '../../cards/ui/FlagInsightButton'
 import HetHighlightedText from '../../styles/HetComponents/HetHighlightedText'
 import {
   generateReportInsight,
+  previewReportInsight,
   type ReportInsightSectionKey,
   type ReportInsightSections,
 } from '../../utils/generateReportInsight'
@@ -227,12 +228,21 @@ export default function InsightReportCard(props: InsightReportCardProps) {
             <Divider />
 
             <p className='m-0 text-alt-dark text-smallest'>
-              AI-generated. Verify with chart data.{' '}
               <FlagInsightButton
                 cacheKey={serverCacheKey ?? undefined}
                 content={insightText}
                 topic={dataTypeConfig?.dataTypeId}
                 onFlagged={handleFlagged}
+                onFetchPrompt={
+                  dataTypeConfig && fips && demographicType
+                    ? () =>
+                        previewReportInsight(
+                          dataTypeConfig,
+                          demographicType,
+                          fips,
+                        )
+                    : undefined
+                }
               />
             </p>
           </>

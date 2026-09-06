@@ -1,17 +1,26 @@
+import ContentCopy from '@mui/icons-material/ContentCopy'
 import {
   Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
   FormControlLabel,
-  Popover,
+  IconButton,
   Radio,
   RadioGroup,
   TextField,
+  Tooltip,
 } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   FLAG_REASON_OPTIONS,
   type FlagReason,
   flagInsight,
 } from '../../utils/flagInsight'
+import { AI_INSIGHTS_LINK } from '../../utils/internalRoutes'
 
 interface FlagInsightButtonProps {
   // The exact server cache key the insight was generated/stored under.
@@ -22,23 +31,45 @@ interface FlagInsightButtonProps {
   topic?: string
   // Called after a successful flag so the parent can hide/clear the insight.
   onFlagged: () => void
+  // Fetches the rendered prompt for the transparency disclosure. When omitted,
+  // the prompt section is hidden.
+  onFetchPrompt?: () => Promise<string | null>
 }
 
 // Keep in sync with the data server's note truncation (main.py flag_insight, [:1000]).
 const NOTE_MAX_LENGTH = 1000
 
 export default function FlagInsightButton(props: FlagInsightButtonProps) {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
+  const [open, setOpen] = useState(false)
   const [reason, setReason] = useState<FlagReason | ''>('')
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(false)
+  const [prompt, setPrompt] = useState<string | null>(null)
+  const [promptLoading, setPromptLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  const open = Boolean(anchorEl)
+  // Fetch prompt as soon as the modal opens so it's ready when the user scrolls.
+  useEffect(() => {
+    if (open && prompt === null && props.onFetchPrompt) {
+      setPromptLoading(true)
+      props.onFetchPrompt().then((result) => {
+        setPrompt(result)
+        setPromptLoading(false)
+      })
+    }
+  }, [open])
 
   const handleClose = () => {
-    setAnchorEl(null)
+    setOpen(false)
     setError(false)
+  }
+
+  const handleCopy = async () => {
+    if (!prompt) return
+    await navigator.clipboard.writeText(prompt)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const handleSubmit = async () => {
@@ -65,23 +96,20 @@ export default function FlagInsightButton(props: FlagInsightButtonProps) {
     <>
       <button
         type='button'
-        onClick={(e) => setAnchorEl(e.currentTarget)}
+        onClick={() => setOpen(true)}
         disabled={!props.cacheKey}
-        className='cursor-pointer border-0 bg-transparent p-0 text-alt-dark text-smallest underline hover:text-alt-black disabled:opacity-50'
+        className='cursor-pointer border-0 bg-transparent p-0 text-alt-dark text-smallest hover:text-alt-black disabled:opacity-50'
       >
-        Report harmful or inaccurate content
+        AI-generated. Click to report a harmful or inaccurate insight, or learn
+        more.
       </button>
-      <Popover
-        open={open}
-        anchorEl={anchorEl}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <div className='flex w-72 flex-col gap-2 p-4'>
-          <span className='font-semibold text-alt-dark text-small'>
-            What's the issue?
-          </span>
+      <Dialog open={open} onClose={handleClose} maxWidth='sm' fullWidth>
+        <DialogTitle>Learn more or report an issue</DialogTitle>
+        <DialogContent>
+          {/* Report form — primary action */}
+          <p className='mt-0 mb-2 font-medium text-alt-dark text-smallest'>
+            What's the issue? <span className='font-normal'>(required)</span>
+          </p>
           <RadioGroup
             value={reason}
             onChange={(e) => setReason(e.target.value as FlagReason)}
@@ -91,7 +119,11 @@ export default function FlagInsightButton(props: FlagInsightButtonProps) {
                 key={option.value}
                 value={option.value}
                 control={<Radio size='small' />}
-                label={option.label}
+                label={
+                  <span className='text-alt-dark text-smallest'>
+                    {option.label}
+                  </span>
+                }
               />
             ))}
           </RadioGroup>
@@ -103,29 +135,89 @@ export default function FlagInsightButton(props: FlagInsightButtonProps) {
             minRows={2}
             size='small'
             fullWidth
-            slotProps={{ htmlInput: { maxLength: NOTE_MAX_LENGTH } }}
+            className='mt-3'
+            slotProps={{
+              htmlInput: { maxLength: NOTE_MAX_LENGTH },
+              inputLabel: { className: 'text-smallest' },
+              formHelperText: { className: 'text-smallest' },
+            }}
             helperText={`${note.length}/${NOTE_MAX_LENGTH}`}
           />
           {error && (
-            <p className='m-0 text-red-500 text-smallest'>
+            <p className='mt-1 mb-0 text-red-orange text-smallest'>
               Could not submit report. Please try again.
             </p>
           )}
-          <div className='flex justify-end gap-2'>
-            <Button size='small' onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button
-              size='small'
-              variant='contained'
-              onClick={handleSubmit}
-              disabled={!reason || submitting}
+
+          <Divider className='my-4' />
+
+          {/* About this insight — secondary context */}
+          <p className='m-0 text-alt-dark text-smallest'>
+            This summary was generated by Google's Gemini model from the chart
+            data above. It is not a research finding and may contain errors.
+            Always verify with the chart.{' '}
+            <a
+              href={AI_INSIGHTS_LINK}
+              className='text-alt-green hover:text-alt-black'
             >
-              {submitting ? 'Submitting...' : 'Submit report'}
-            </Button>
-          </div>
-        </div>
-      </Popover>
+              Learn more in our methodology.
+            </a>
+          </p>
+
+          {/* Data prompt — transparency, always visible */}
+          {props.onFetchPrompt && (
+            <div className='mt-4'>
+              <p className='mt-0 mb-2 text-alt-dark text-smallest'>
+                Data prompt sent to the model:
+              </p>
+              {promptLoading ? (
+                <div className='flex items-center gap-2'>
+                  <CircularProgress size={14} />
+                  <span className='text-alt-dark text-smallest'>
+                    Loading...
+                  </span>
+                </div>
+              ) : prompt ? (
+                <div className='rounded-md bg-standard-info p-3'>
+                  <div className='flex justify-end'>
+                    <Tooltip title={copied ? 'Copied!' : 'Copy to clipboard'}>
+                      <IconButton size='small' onClick={handleCopy}>
+                        <ContentCopy sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </div>
+                  <pre
+                    // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable region needs keyboard access per WCAG 2.1.1
+                    tabIndex={0}
+                    className='m-0 max-h-48 overflow-auto whitespace-pre-wrap break-words font-roboto-condensed text-alt-dark text-smallest'
+                    role='region'
+                    aria-label='Rendered model prompt'
+                  >
+                    {prompt}
+                  </pre>
+                </div>
+              ) : (
+                <p className='m-0 text-alt-dark text-smallest'>
+                  Unable to load prompt.
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button className='rounded-md px-3 py-1.5' onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            className='rounded-md px-4 py-1.5'
+            variant='contained'
+            onClick={handleSubmit}
+            disabled={!reason || submitting}
+          >
+            {submitting ? 'Submitting...' : 'Submit report'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

@@ -370,9 +370,20 @@ func buildReportInsightPrompt(topic, location, demographicLabel string, data rep
 	if ageAdjustedSection != "" {
 		ageAdjustedClause = " Then use the age-adjusted ratios to say whether the gap holds once differences in age between groups are accounted for."
 	}
+	// Only ask for a between-group trend when multiple groups are present in the
+	// temporal data. A section with only the "All" row has no gap to describe.
 	temporalClause := ""
 	if temporalSection != "" {
-		temporalClause = " Then say whether the gap between groups has widened or narrowed across the reported periods, naming the highest point if one is given."
+		hasMultipleGroups := false
+		for _, line := range strings.Split(temporalSection, "\n") {
+			if strings.HasPrefix(line, "- ") && !strings.HasPrefix(line, "- All:") {
+				hasMultipleGroups = true
+				break
+			}
+		}
+		if hasMultipleGroups {
+			temporalClause = " Then say whether the gap between groups has widened, narrowed, or remained stable across the reported periods, naming the highest point if one is given."
+		}
 	}
 
 	// A rate gap says a group is worse off. Set against the group's share of the
@@ -427,8 +438,8 @@ WRITING RULES, follow these strictly:
 %s
 - Every number must trace back to the data above. Rounding one for readability and comparing two that are both shown are both fine; inventing, estimating, or guessing at a figure that is not there is not. If a number is not in the data, describe the pattern in words instead.
 - Do not add causal explanations or place-specific facts that are not in the data.
-- A rate of 0 means the source reported no rate for that place or period. Never cite a 0 as a rate, and never describe it as a place or time with no cases, no deaths, or no burden.
-- Call a figure a peak, a high point, or a low point only where the data above labels it as one. A first or latest reported value is neither.
+- A rate of 0 is a real value — cite it as a rate. Never restate it as "no one affected", "no cases", "no deaths", or "no burden": small counts round down to zero and real people may be hidden. A blank or absent value means no data is available for that place or period.
+- You may describe a high point or low point based on a clear pattern in the time-series data, even when the peak or trough falls at the start or end of the series. Use caution when periods are missing — gaps can make a trend appear stronger or longer than it is. Do not infer a trend from two isolated points.
 - Refer to a group by the shortest everyday form of the name shown in the data. Never swap in a different group, and never name a group the data does not list.
 - Never label a group vulnerable, at-risk, high-risk, underserved, or a minority. Those words describe people by a deficit rather than by what they face. Name the group and name the burden instead.
 - Use person-first wording: "people with diabetes", not "diabetics"; "people experiencing homelessness", not "the homeless".
