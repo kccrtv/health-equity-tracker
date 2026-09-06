@@ -34,7 +34,11 @@ test('National Vaccination Full Test', async ({ page }) => {
         )
         .toBeVisible(),
       expect
-        .soft(page.getByLabel('Bar Chart Showing COVID-19'))
+        .soft(
+          rateChart.getByRole('img', {
+            name: 'COVID-19 vaccination rates in',
+          }),
+        )
         .toBeVisible(),
     ])
   })
@@ -50,7 +54,7 @@ test('National Vaccination Full Test', async ({ page }) => {
         .soft(page.getByRole('heading', { name: 'Share of total COVID-19' }))
         .toBeVisible(),
       expect.soft(page.getByText('% unknown', { exact: true })).toBeVisible(),
-      expect.soft(unknownMap.getByText('no data')).toBeVisible(),
+      expect.soft(unknownMap.getByText('No data')).toBeVisible(),
     ])
   })
 
@@ -114,6 +118,11 @@ test('State Vaccination Quick Test', async ({ page }) => {
   })
 
   // --- Interaction: Switch Location ---
+  // Wait for the map to have finished loading data before interacting
+  await expect(
+    rateMap.getByRole('heading', { name: 'COVID-19 vaccination rates in' }),
+  ).toBeVisible()
+
   await page
     .locator('#madlib-box')
     .getByRole('button', { name: 'California' })
@@ -138,9 +147,9 @@ test('County Vaccination Quick Test', async ({ page }) => {
     await Promise.all([
       expect
         .soft(
-          page.getByRole('heading', {
-            name: 'COVID-19 vaccination rates in Los Angeles County, California',
-            exact: true,
+          page.locator('#rate-map-title', {
+            hasText:
+              'COVID-19 vaccination rates in Los Angeles County, California',
           }),
         )
         .toBeVisible(),

@@ -19,7 +19,7 @@ from ingestion.constants import (
     ALL_VALUE,
 )
 import os
-from ingestion.het_types import TIME_VIEW_TYPE  # pylint: disable=no-name-in-module
+from ingestion.het_types import TIME_VIEW_TYPE
 
 INGESTION_DIR = os.path.dirname(os.path.abspath(__file__))
 ACS_MERGE_DATA_DIR = os.path.join(INGESTION_DIR, "acs_population")
@@ -685,6 +685,7 @@ def combine_race_ethnicity(
     additional_group_cols: Union[List[str], None] = None,
     race_eth_output_col: str = std_col.RACE_CATEGORY_ID_COL,
     treat_zero_count_as_missing: bool = False,
+    is_suppressed_col: Union[str, None] = None,
 ):
     """Combines the `race` and `ethnicity` columns into a single `race_and_ethnicity` col.
 
@@ -700,6 +701,12 @@ def combine_race_ethnicity(
     - additional_group_cols (optional): List of additional columns to group by
     - race_eth_output_col (optional default='race_and_ethnicity'): str name of the added combination race and eth col
     - treat_zero_count_as_missing (optional default=False): if True, sum gets min_count=1 argument
+    - is_suppressed_col (optional): name of a tri-state (`True`/`NaN`) suppression flag column. When
+      present in `df`, a combined race/ethnicity group (e.g. the summed HISP or UNKNOWN row) is
+      flagged suppressed if any constituent row was suppressed; groups with no suppressed
+      constituent get `NaN`, not `False`, matching the raw per-row convention. Callers are
+      responsible for nulling any count columns that shouldn't be trusted for a suppressed group
+      (see `condense_age_groups` in `cdc_wisqars_utils.py` for the analogous pattern).
     """
 
     # Require std_col.RACE_COL and std_col.ETH_COL
@@ -757,11 +764,21 @@ def combine_race_ethnicity(
         for count_col in count_cols_to_sum
     }
 
+    has_suppression_col = is_suppressed_col is not None and is_suppressed_col in df.columns
+    if is_suppressed_col is not None and has_suppression_col:
+        agg_col_map[is_suppressed_col] = lambda x: x.astype("boolean").fillna(False).astype(bool).any()
+
     if not count_cols_to_sum:
         return df
 
     # if count cols were provided, we need the new HISP rows to sum the various Hispanic+Race groups
     df_aggregated = df.groupby(group_cols).agg(agg_col_map).reset_index()
+
+    if is_suppressed_col is not None and has_suppression_col:
+        is_suppressed = df_aggregated[is_suppressed_col].astype(bool)
+        final_suppressed_col = pd.Series(np.nan, index=df_aggregated.index, dtype=object)
+        final_suppressed_col[is_suppressed] = True
+        df_aggregated[is_suppressed_col] = final_suppressed_col
 
     return df_aggregated
 
@@ -867,12 +884,22 @@ def generate_time_df_with_cols_and_types(
     # Remove duplicate columns in the DataFrame
     df = df.loc[:, ~df.columns.duplicated()]
 
-    # Remove duplicate columns in float_cols
-    float_cols = list(dict.fromkeys([col for col in numerical_cols_to_keep if col in df.columns]))
+    # `_is_suppressed` columns are tri-state booleans (True/False/NaN), not floats
+    numerical_cols_to_keep = list(dict.fromkeys([col for col in numerical_cols_to_keep if col in df.columns]))
+    bool_cols = [col for col in numerical_cols_to_keep if col.endswith(std_col.IS_SUPPRESSED_SUFFIX)]
+    float_cols = [col for col in numerical_cols_to_keep if col not in bool_cols]
 
     df[float_cols] = df[float_cols].astype(float)
+    if bool_cols:
+        # Tri-state (True/False/NaN) object columns, matching the cdc_miovd/nci_cancer convention.
+        # Upstream pivots/merges can backfill missing cells in object columns with `None` rather
+        # than `NaN`; normalize to `NaN` so both null-like values collapse to one representation.
+        df[bool_cols] = df[bool_cols].astype(object)
+        df[bool_cols] = df[bool_cols].where(df[bool_cols].notna(), np.nan)
 
-    column_types = {c: (BQ_FLOAT if c in float_cols else BQ_STRING) for c in df.columns}
+    column_types = {
+        c: (BQ_FLOAT if c in float_cols else BQ_BOOLEAN if c in bool_cols else BQ_STRING) for c in df.columns
+    }
 
     return df, column_types
 

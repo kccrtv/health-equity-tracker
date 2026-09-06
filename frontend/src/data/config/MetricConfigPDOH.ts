@@ -4,6 +4,8 @@ import {
   womenHigherIsBetterMapConfig,
 } from '../../charts/mapGlobals'
 import {
+  adultPopulationPctShortLabel,
+  adultPopulationPctTitle,
   populationPctShortLabel,
   populationPctTitle,
 } from './MetricConfigConstants'
@@ -43,9 +45,9 @@ export type PDOHMetricId =
   | 'total_us_congress_count'
   | 'total_us_congress_names'
   | 'voter_participation_pct_rate'
-  | 'voter_participation_pct_share'
   | 'women_state_leg_pct_relative_inequity'
   | 'women_this_race_state_leg_count'
+  | 'congressional_districts'
   | 'women_this_race_us_congress_count'
   | 'women_this_race_us_congress_names'
   | 'women_us_congress_pct_relative_inequity'
@@ -77,20 +79,30 @@ export const VOTER_PARTICIPATION_METRICS: DataTypeConfig[] = [
         shortLabel: '% voter participation',
         type: 'pct_rate',
         timeSeriesCadence: 'fourYearly',
-      },
-      pct_share: {
-        chartTitle: 'Share of all voter participation',
-        metricId: 'voter_participation_pct_share',
-        columnTitleHeader: 'Share of all voter participation',
-        shortLabel: '% of voters',
-        type: 'pct_share',
+        isGeneralPopulationComparison: true,
         populationComparisonMetric: {
-          chartTitle:
-            'Population vs. distribution of total voter participation',
-          metricId: 'ahr_population_pct',
-          columnTitleHeader: populationPctTitle,
-          shortLabel: populationPctShortLabel,
+          chartTitle: '',
+          metricId: 'ahr_18plus_population_pct',
+          columnTitleHeader: adultPopulationPctTitle,
+          shortLabel: adultPopulationPctShortLabel,
           type: 'pct_share',
+          generalPopulationLabel: 'all adults',
+        },
+      },
+    },
+    geoOverrides: {
+      county: {
+        metrics: {
+          pct_rate: {
+            populationComparisonMetric: {
+              chartTitle: '',
+              metricId: 'chr_population_pct',
+              columnTitleHeader: populationPctTitle,
+              shortLabel: populationPctShortLabel,
+              type: 'pct_share',
+              generalPopulationLabel: 'everyone',
+            },
+          },
         },
       },
     },

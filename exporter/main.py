@@ -25,6 +25,17 @@ def export_dataset_tables():
     if data.get("category") is not None:
         category = data.get("category")
     should_export_as_alls = data.get("should_export_as_alls", False)
+
+    # The ALLs export filters on and renames the demographic column, so it
+    # cannot run without one. Fail loudly on a misconfigured DAG rather than
+    # silently skipping the alls file (which the frontend fallback relies on).
+    if should_export_as_alls and not demographic:
+        return (
+            'Request set "should_export_as_alls" but did not include a "demographic". '
+            "Add the demographic input to the DAG's export step.",
+            400,
+        )
+
     dataset_name = data["dataset_name"]
     project_id = os.environ.get("PROJECT_ID")
     export_bucket = os.environ.get("EXPORT_BUCKET")
@@ -47,18 +58,18 @@ def export_dataset_tables():
     if category is not None:
         tables = [table for table in tables if category in table.table_id]
 
-    if not tables:
-        return (f'Dataset has no tables with "{demographic}" and "{category}" in the table_id.', 500)
-
     # If there are no tables in the dataset, return an error so the pipeline will alert
     # and a human can look into any potential issues.
     if not tables:
-        return (f'Dataset has no tables with "{demographic}" in the table_id.', 500)
+        return (f'Dataset has no tables with "{demographic}" and "{category}" in the table_id.', 500)
 
     for table in tables:
-        # split up county-level tables by state and export those individually
+        # split up county-level tables by state and export those individually.
+        # Propagate any error so the DAG step fails instead of reporting success.
         if not has_multi_demographics(table.table_id):
-            export_split_county_tables(bq_client, table, export_bucket)
+            error = export_split_county_tables(bq_client, table, export_bucket)
+            if error is not None:
+                return error
 
         # export the full table
         dest_uri = f"gs://{export_bucket}/{dataset_name}-{table.table_id}.json"
@@ -73,8 +84,12 @@ def export_dataset_tables():
                 500,
             )
 
+        # Propagate any ALLs export error; a swallowed failure here silently
+        # drops the file the frontend fallback depends on.
         if should_export_as_alls:
-            export_alls(bq_client, table, export_bucket, demographic)
+            error = export_alls(bq_client, table, export_bucket, demographic)
+            if error is not None:
+                return error
 
     return ("", 204)
 
@@ -96,13 +111,19 @@ def export_split_county_tables(bq_client: bigquery.Client, table: bigquery.Table
         return
 
     logging.info(f"Exporting county-level data from {table_name} into additional files, split by state/territory.")
-    bucket = prepare_bucket(export_bucket)
+    try:
+        bucket = prepare_bucket(export_bucket)
+    except Exception as err:
+        message = f"Error preparing bucket for county-level table {table_name}:\n {err}"
+        logging.error(message)
+        return (message, 500)
 
     for fips in STATE_LEVEL_FIPS_LIST:
         state_file_name = f"{table.dataset_id}-{table.table_id}-{fips}.json"
+        # Backticks required so hyphens in the project id / table id don't break the query.
         query = f"""
             SELECT *
-            FROM {table_name}
+            FROM `{table_name}`
             WHERE county_fips LIKE '{fips}___'
             """
 
@@ -113,11 +134,9 @@ def export_split_county_tables(bq_client: bigquery.Client, table: bigquery.Table
             export_nd_json_to_blob(blob, nd_json)
 
         except Exception as err:
-            logging.error(err)
-            return (
-                f"Error splitting county-level table {table_name} into {state_file_name}:\n {err}",
-                500,
-            )
+            message = f"Error splitting county-level table {table_name} into {state_file_name}:\n {err}"
+            logging.error(message)
+            return (message, 500)
 
 
 def has_multi_demographics(table_id: str):
@@ -161,14 +180,17 @@ def export_alls(bq_client: bigquery.Client, table: bigquery.Table, export_bucket
     if demographic == "race":
         demo_cols.append("race_category_id")
 
-    bucket = prepare_bucket(export_bucket)
+    # Backticks are required: fully-qualified names contain hyphens (the project id
+    # and hyphenated table ids like `non-behavioral_health_...`), which are a BigQuery
+    # syntax error when unquoted.
     query = f"""
         SELECT *
-        FROM {table_name}
+        FROM `{table_name}`
         WHERE {demo_col} = 'All'
     """
 
     try:
+        bucket = prepare_bucket(export_bucket)
         blob = prepare_blob(bucket, alls_file_name)
         alls_df = get_query_results_as_df(bq_client, query)
         alls_df.drop(columns=demo_cols, inplace=True)
@@ -176,11 +198,9 @@ def export_alls(bq_client: bigquery.Client, table: bigquery.Table, export_bucket
         export_nd_json_to_blob(blob, nd_json)
 
     except Exception as err:
-        logging.error(err)
-        return (
-            f"Error extracting the ALLS rows from table {table_name} into {alls_file_name}:\n {err}",
-            500,
-        )
+        message = f"Error extracting the ALLS rows from table {table_name} into {alls_file_name}:\n {err}"
+        logging.error(message)
+        return (message, 500)
 
 
 def get_table_name(table):

@@ -1,4 +1,4 @@
-import { HashLink } from 'react-router-hash-link'
+import { Link } from 'react-router'
 import type { MetricQueryResponse } from '../../data/query/MetricQuery'
 import type { Fips } from '../../data/utils/Fips'
 import HetNotice from '../../styles/HetComponents/HetNotice'
@@ -35,15 +35,15 @@ export const findVerboseRating = (svi: number) => {
 
 export const findColor = (rating: string) => {
   if (rating === 'high') {
-    return 'text-alt-red'
+    return 'text-red-orange'
   }
   if (rating === 'medium') {
-    return 'text-alt-orange'
+    return 'text-alt-black'
   }
   if (rating === 'low') {
     return 'text-alt-green'
   }
-  return 'text-black'
+  return 'text-alt-black'
 }
 
 function SviAlert(props: SviAlertProps) {
@@ -59,9 +59,9 @@ function SviAlert(props: SviAlertProps) {
         <>
           This county has a <HetTerm>social vulnerability index</HetTerm> of{' '}
           <strong>{props.svi}</strong>; which indicates a{' '}
-          <HashLink to={`${METRICS_LINK as string}#svi`} className={color}>
-            <span>{rating} level of vulnerability.</span>
-          </HashLink>
+          <Link to={`${METRICS_LINK as string}#svi`} className={color}>
+            <span className='font-bold'>{rating} level of vulnerability.</span>
+          </Link>
         </>
       ) : (
         <>

@@ -103,22 +103,7 @@ variable "gcs_to_bq_runner_role_id" {
   type        = string
 }
 
-# Data Server Cloud Run Service Vars
-variable "data_server_service_name" {
-  description = "Name of the Cloud Run service for serving data to client frontends"
-  type        = string
-}
-
-variable "data_server_image_name" {
-  description = "Name of container image for the Cloud Run data server service"
-  type        = string
-}
-
-variable "data_server_image_digest" {
-  description = "Digest of container image for the Cloud Run data server service"
-  type        = string
-}
-
+# Data Server Service Account Vars (SA reused by the Go server)
 variable "data_server_runner_identity_id" {
   description = "Account id of the service account used when running the data server service"
   type        = string
@@ -155,23 +140,85 @@ variable "exporter_runner_role_id" {
   type        = string
 }
 
-# Frontend Cloud Run Service Vars
+# The Cloud Run service name is pinned to "frontend-service" by the domain mapping.
 variable "frontend_service_name" {
-  description = "Name of the Cloud Run service that serves the frontend"
+  description = "Name of the Cloud Run service that serves the frontend and all APIs (pinned by domain mapping)"
   type        = string
 }
 
-variable "frontend_image_name" {
-  description = "Name of container image for the Cloud Run frontend service"
+variable "server_image_name" {
+  description = "Name of container image for the Go combined server service"
   type        = string
 }
 
-variable "frontend_image_digest" {
-  description = "Digest of container image for the Cloud Run frontend service"
+variable "server_image_digest" {
+  description = "Digest of container image for the Go combined server service"
   type        = string
 }
 
-variable "frontend_runner_identity_id" {
-  description = "Account id of the service account used when running the frontend service"
+variable "metadata_filename" {
+  description = "GCS object name of the metadata NDJSON file"
   type        = string
+}
+
+variable "insights_cache_writer_role_id" {
+  description = "Role id of the custom IAM role granting read/write access to the AI insights cache bucket"
+  type        = string
+}
+
+variable "flagged_insights_writer_role_id" {
+  description = "Role id of the custom IAM role granting read/write access to the flagged insights bucket"
+  type        = string
+}
+
+variable "insights_cache_bucket" {
+  description = "Name of the GCS bucket for caching AI-generated insights"
+  type        = string
+}
+
+variable "flagged_insights_bucket" {
+  description = "Name of the GCS bucket storing user-flagged insights (no TTL — curated archive)"
+  type        = string
+}
+
+variable "gemini_model" {
+  description = "Gemini model used for AI insight generation"
+  type        = string
+  default     = "gemini-3.1-flash-lite"
+}
+
+variable "insight_max_generations_per_day" {
+  description = "Maximum AI insight generations per provider quota day (America/Los_Angeles), enforced by the usage ledger"
+  type        = number
+  default     = 300
+}
+
+variable "insight_max_generations_per_month" {
+  description = "Maximum AI insight generations per provider quota month (America/Los_Angeles), enforced by the usage ledger"
+  type        = number
+  default     = 6000
+}
+
+variable "insight_allowed_origins" {
+  description = "Origins permitted to request AI insight generation. A \"https://*.\" prefix matches subdomains only."
+  type        = list(string)
+  default = [
+    "https://healthequitytracker.org",
+    "https://www.healthequitytracker.org",
+    "https://dev.healthequitytracker.org",
+    "http://localhost:3000",
+    "https://*.netlify.app",
+  ]
+}
+
+variable "pr_screenshots_bucket" {
+  description = "Name of the GCS bucket for PR screenshot images (public read, team-write, 90-day TTL). Leave empty to skip creation."
+  type        = string
+  default     = ""
+}
+
+variable "pr_screenshots_deployer_sa" {
+  description = "Email of the service account used by CI to delete PR screenshot folders on PR close."
+  type        = string
+  default     = ""
 }

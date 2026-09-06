@@ -25,7 +25,7 @@ import HetNotice from '../styles/HetComponents/HetNotice'
 import { useGuessPreloadHeight } from '../utils/hooks/useGuessPreloadHeight'
 import type { ScrollableHashId } from '../utils/hooks/useStepObserver'
 import CardWrapper from './CardWrapper'
-import ChartTitle from './ChartTitle'
+import ChartTitle, { getChartTitleId } from './ChartTitle'
 import CAWPOverlappingRacesAlert from './ui/CAWPOverlappingRacesAlert'
 import MissingDataAlert from './ui/MissingDataAlert'
 import UnknownsAlert from './ui/UnknownsAlert'
@@ -37,6 +37,7 @@ interface StackedSharesBarChartCardProps {
   fips: Fips
   reportTitle: string
   className?: string
+  isCompareCard?: boolean
 }
 
 export default function StackedSharesBarChartCard(
@@ -89,10 +90,12 @@ export default function StackedSharesBarChartCard(
       minHeight={preloadHeight}
       reportTitle={props.reportTitle}
       className={props.className}
-      shareConfig={shareConfig}
-      metricIds={metricIds}
+      isCompareCard={props.isCompareCard}
+      fips={props.fips}
+      dataTypeConfig={props.dataTypeConfig}
+      demographicType={props.demographicType}
     >
-      {([queryResponse]) => {
+      {([queryResponse], _metadata, _geoData, overrideCardHasData) => {
         const validData = queryResponse.getValidRowsForField(
           shareConfig.metricId,
         )
@@ -125,13 +128,20 @@ export default function StackedSharesBarChartCard(
           knownData.length > 0 &&
           !queryResponse.shouldShowMissingDataMessage([shareConfig.metricId])
 
+        overrideCardHasData?.(dataAvailable)
+
         return (
           <>
             {dataAvailable && knownData.length !== 0 && (
               <>
-                <ChartTitle title={chartTitle} subtitle={subtitle} />
+                <ChartTitle
+                  id={getChartTitleId(HASH_ID, props.isCompareCard)}
+                  title={chartTitle}
+                  subtitle={subtitle}
+                />
 
                 <StackedBarChart
+                  chartTitleId={getChartTitleId(HASH_ID, props.isCompareCard)}
                   fips={props.fips}
                   data={knownData}
                   lightMetric={
@@ -160,13 +170,17 @@ export default function StackedSharesBarChartCard(
               />
             ) : (
               <>
-                <ChartTitle title={'Graph unavailable: ' + chartTitle} />
+                <ChartTitle
+                  id={getChartTitleId(HASH_ID, props.isCompareCard)}
+                  title={'Graph unavailable: ' + chartTitle}
+                />
                 <MissingDataAlert
                   dataName={chartTitle}
                   demographicTypeString={
                     DEMOGRAPHIC_DISPLAY_TYPES_LOWER_CASE[props.demographicType]
                   }
                   fips={props.fips}
+                  mentionAllsCards={true}
                 />
               </>
             )}

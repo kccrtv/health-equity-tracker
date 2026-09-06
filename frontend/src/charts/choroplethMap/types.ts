@@ -1,4 +1,9 @@
-import type * as d3 from 'd3'
+import type {
+  GeoProjection,
+  ScaleQuantile,
+  ScaleSequential,
+  ScaleThreshold,
+} from 'd3'
 import type {
   Feature,
   FeatureCollection,
@@ -28,13 +33,13 @@ export type ColorScheme =
   | 'darkred'
 
 export type ColorScale =
-  | d3.ScaleSequential<any, never>
-  | d3.ScaleThreshold<number, string, never>
-  | d3.ScaleQuantile<string, number>
+  | ScaleSequential<any, never>
+  | ScaleThreshold<number, string, never>
+  | ScaleQuantile<string, number>
 
 export function isQuantileScale(
   scale: ColorScale,
-): scale is d3.ScaleQuantile<string, number> {
+): scale is ScaleQuantile<string, number> {
   return 'quantiles' in scale && typeof scale.quantiles === 'function'
 }
 
@@ -69,7 +74,6 @@ export interface ChoroplethMapProps {
   isAtlantaMode?: boolean
   updateFipsCallback: (fips: Fips) => void
   colorScale: ColorScale | null
-  allMissingDataIsSuppressed?: boolean
 }
 
 export interface CreateColorScaleOptions {
@@ -116,8 +120,27 @@ export type InitializeSvgOptions = {
   isUnknownsMap?: boolean
 }
 
+// Every key other than these is a user-facing tooltip row keyed by its own label,
+// so anything internal must be listed here or it renders as a stray line.
+export const METRIC_DATA_INTERNAL_KEYS = ['value', 'isSuppressed'] as const
+
 export interface MetricData {
-  [key: string]: string | number | undefined
+  value?: number
+  isSuppressed?: boolean
+  [key: string]: string | number | boolean | undefined
+}
+
+export interface MapTooltipEntry {
+  label: string
+  value: string
+}
+
+export interface MapTooltipData {
+  name: string
+  geographyType: string
+  featureId: string
+  isSummaryLegend: boolean
+  entries: MapTooltipEntry[]
 }
 
 export type RenderMapOptions = {
@@ -128,7 +151,7 @@ export type RenderMapOptions = {
   demographicType: DemographicType
   geoData: {
     features: FeatureCollection<Geometry, GeoJsonProperties>
-    projection: d3.GeoProjection
+    projection: GeoProjection
   }
   height: number
   hideLegend?: boolean
@@ -136,7 +159,8 @@ export type RenderMapOptions = {
   metricConfig: MetricConfig
   showCounties: boolean
   svgRef: RefObject<SVGSVGElement | null>
-  tooltipContainer: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
+  showTooltip: (data: MapTooltipData, x: number, y: number) => void
+  hideTooltip: () => void
   width: number
   fips: Fips
   isMobile: boolean
@@ -146,7 +170,6 @@ export type RenderMapOptions = {
   signalListeners: any
   isMulti?: boolean
   isSummaryLegend?: boolean
-  allMissingDataIsSuppressed: boolean
   updateFipsCallback: (fips: Fips) => void
 }
 
@@ -166,9 +189,7 @@ declare global {
 
 export type MouseEventType =
   | 'mouseover'
-  | 'pointerdown'
   | 'mouseout'
-  | 'mousemove'
   | 'touchstart'
   | 'touchend'
 
@@ -176,13 +197,13 @@ export interface MouseEventHandlerOptions {
   colorScale: any
   metricConfig: MetricConfig
   dataMap: Map<string, any>
-  tooltipContainer: any
+  showTooltip: (data: MapTooltipData, x: number, y: number) => void
+  hideTooltip: () => void
   geographyType: string
   demographicType?: DemographicType
   mapConfig: MapConfig
   isMultiMap: boolean
   isSummaryLegend: boolean
   isExtremesMode: boolean
-  allMissingDataIsSuppressed: boolean
   updateFipsCallback: (fips: Fips) => void
 }

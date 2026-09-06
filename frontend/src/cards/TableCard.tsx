@@ -37,7 +37,10 @@ import { urlMap } from '../utils/externalUrls'
 import { useGuessPreloadHeight } from '../utils/hooks/useGuessPreloadHeight'
 import type { ScrollableHashId } from '../utils/hooks/useStepObserver'
 import CardWrapper from './CardWrapper'
+import ChartTitle, { getChartTitleId } from './ChartTitle'
+import AllsFallbackAlert from './ui/AllsFallbackAlert'
 import GenderDataShortAlert from './ui/GenderDataShortAlert'
+import GeneralPopulationComparisonAlert from './ui/GeneralPopulationComparisonAlert'
 import IncarceratedChildrenShortAlert from './ui/IncarceratedChildrenShortAlert'
 import MissingDataAlert from './ui/MissingDataAlert'
 
@@ -47,6 +50,29 @@ interface TableCardProps {
   dataTypeConfig: DataTypeConfig
   reportTitle: string
   className?: string
+  isCompareCard?: boolean
+}
+
+const HASH_ID: ScrollableHashId = 'data-table'
+
+// The general population column is context for the rate, not a finding on its
+// own, so it and its caveat are resolved together and withheld together.
+// Withheld when the rate is absent for the entire breakdown, since that would
+// leave a table of ACS shares under a topic with nothing to report. Withheld
+// again when the population metric carries no generalPopulationLabel, since the
+// caveat names the population outright and a guessed label would state
+// something false rather than merely read awkwardly.
+export function resolveGeneralPopulation(
+  rateConfig: MetricConfig | undefined,
+  isRateFieldMissing: boolean,
+): { config: MetricConfig; label: string } | undefined {
+  if (!rateConfig?.isGeneralPopulationComparison || isRateFieldMissing) {
+    return undefined
+  }
+  const config = rateConfig.populationComparisonMetric
+  const label = config?.generalPopulationLabel
+  if (!config || !label) return undefined
+  return { config, label }
 }
 
 export default function TableCard(props: TableCardProps) {
@@ -76,6 +102,10 @@ export default function TableCard(props: TableCardProps) {
   const metricIds = Object.keys(metricIdToConfigMap) as MetricId[]
   const metricConfigs = Object.values(metricIdToConfigMap)
 
+  const generalPopulationMetricId = rateConfig?.isGeneralPopulationComparison
+    ? rateConfig.populationComparisonMetric?.metricId
+    : undefined
+
   const isIncarceration = INCARCERATION_IDS.includes(
     props.dataTypeConfig.dataTypeId,
   )
@@ -102,13 +132,12 @@ export default function TableCard(props: TableCardProps) {
     breakdowns,
     /* dataTypeId */ props.dataTypeConfig.dataTypeId,
     /* timeView */ 'current',
+    /* scrollToHashId */ HASH_ID,
   )
 
   const displayingCovidData = COVID_DISEASE_METRICS.includes(
     props.dataTypeConfig,
   )
-
-  const HASH_ID: ScrollableHashId = 'data-table'
 
   const subtitle = generateSubtitle(
     ALL,
@@ -126,8 +155,12 @@ export default function TableCard(props: TableCardProps) {
       scrollToHash={HASH_ID}
       reportTitle={props.reportTitle}
       className={props.className}
+      isCompareCard={props.isCompareCard}
+      fips={props.fips}
+      dataTypeConfig={props.dataTypeConfig}
+      demographicType={props.demographicType}
     >
-      {([queryResponse]) => {
+      {([queryResponse], _metadata, _geoData, overrideCardHasData) => {
         let data = queryResponse.data
         if (shouldShowAltPopCompare(props)) data = fillInAltPops(data)
         let normalMetricIds = metricIds
@@ -137,14 +170,31 @@ export default function TableCard(props: TableCardProps) {
           normalMetricIds = metricIds.filter(
             (id) => id !== 'confined_children_estimated_total',
           )
-          data = data.filter(
-            (row: HetRow) => row[props.demographicType] !== ALL,
-          )
+          // on fallback the 'All' row is the only data, so keep it
+          if (!queryResponse.usedAllsFallback) {
+            data = data.filter(
+              (row: HetRow) => row[props.demographicType] !== ALL,
+            )
+          }
         }
+
+        const tableIsShown = !queryResponse.dataIsMissing() && data.length > 0
+
+        const generalPopulation = resolveGeneralPopulation(
+          rateConfig,
+          rateConfig ? queryResponse.isFieldMissing(rateConfig.metricId) : true,
+        )
+        const shownMetricConfigs = generalPopulation
+          ? metricConfigs
+          : metricConfigs.filter(
+              (config) => config.metricId !== generalPopulationMetricId,
+            )
 
         const showMissingDataAlert =
           queryResponse.shouldShowMissingDataMessage(normalMetricIds) ||
           data.length <= 0
+
+        overrideCardHasData?.(!showMissingDataAlert)
 
         if (props.demographicType === 'income') {
           data = sortByIncome(data)
@@ -152,12 +202,19 @@ export default function TableCard(props: TableCardProps) {
 
         return (
           <>
-            {!queryResponse.dataIsMissing() && data.length > 0 && (
+            {tableIsShown && queryResponse.usedAllsFallback && (
+              <AllsFallbackAlert
+                dataName={props.dataTypeConfig.fullDisplayName}
+                demographicType={props.demographicType}
+              />
+            )}
+            {tableIsShown && (
               <TableChart
+                chartTitleId={getChartTitleId(HASH_ID, props.isCompareCard)}
                 countColsMap={countColsMap}
                 data={data}
                 demographicType={props.demographicType}
-                metricConfigs={metricConfigs}
+                metricConfigs={shownMetricConfigs}
                 dataTypeId={props.dataTypeConfig.dataTypeId}
                 fips={props.fips}
                 dataTableTitle={
@@ -167,6 +224,14 @@ export default function TableCard(props: TableCardProps) {
               />
             )}
 
+            {tableIsShown && generalPopulation && (
+              <GeneralPopulationComparisonAlert
+                dataTypeConfig={props.dataTypeConfig}
+                populationConfig={generalPopulation.config}
+                generalPopulationLabel={generalPopulation.label}
+                fips={props.fips}
+              />
+            )}
             {isIncarceration && (
               <IncarceratedChildrenShortAlert
                 fips={props.fips}
@@ -183,13 +248,24 @@ export default function TableCard(props: TableCardProps) {
               />
             )}
             {showMissingDataAlert && (
-              <MissingDataAlert
-                dataName={props.dataTypeConfig.fullDisplayName + ' '}
-                demographicTypeString={
-                  DEMOGRAPHIC_DISPLAY_TYPES_LOWER_CASE[props.demographicType]
-                }
-                fips={props.fips}
-              />
+              <>
+                {/* keep the article's aria-labelledby id reference valid when the table can't render */}
+                {!tableIsShown && (
+                  <ChartTitle
+                    id={getChartTitleId(HASH_ID, props.isCompareCard)}
+                    title={`Table unavailable: ${
+                      props.dataTypeConfig.dataTableTitle ?? 'Summary'
+                    }`}
+                  />
+                )}
+                <MissingDataAlert
+                  dataName={props.dataTypeConfig.fullDisplayName + ' '}
+                  demographicTypeString={
+                    DEMOGRAPHIC_DISPLAY_TYPES_LOWER_CASE[props.demographicType]
+                  }
+                  fips={props.fips}
+                />
+              </>
             )}
             {!queryResponse.dataIsMissing() &&
               displayingCovidData &&

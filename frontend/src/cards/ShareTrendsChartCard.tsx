@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HashLink } from 'react-router-hash-link'
+import { Link } from 'react-router'
 import { hasNonZeroUnknowns } from '../charts/trendsChart/helpers'
 import { TrendsChart } from '../charts/trendsChart/Index'
 import { generateChartTitle, generateSubtitle } from '../charts/utils'
@@ -31,7 +31,7 @@ import HetNotice from '../styles/HetComponents/HetNotice'
 import type { ScrollableHashId } from '../utils/hooks/useStepObserver'
 import { METHODOLOGY_PAGE_LINK } from '../utils/internalRoutes'
 import CardWrapper from './CardWrapper'
-import ChartTitle from './ChartTitle'
+import ChartTitle, { getChartTitleId } from './ChartTitle'
 import AltTableView from './ui/AltTableView'
 import Hiv2020Alert from './ui/Hiv2020Alert'
 import MissingDataAlert from './ui/MissingDataAlert'
@@ -123,8 +123,18 @@ export default function ShareTrendsChartCard(props: ShareTrendsChartCardProps) {
       reportTitle={props.reportTitle}
       expanded={a11yTableExpanded}
       className={props.className}
+      isCompareCard={props.isCompareCard}
+      fips={props.fips}
+      dataTypeConfig={props.dataTypeConfig}
+      demographicType={props.demographicType}
+      selectedGroups={selectedTableGroups}
     >
-      {([queryResponseInequity, queryResponsePctShares]) => {
+      {(
+        [queryResponseInequity, queryResponsePctShares],
+        _metadata,
+        _geoData,
+        overrideCardHasData,
+      ) => {
         const inequityData = queryResponseInequity.getValidRowsForField(
           metricConfigInequitable.metricId,
         )
@@ -193,23 +203,30 @@ export default function ShareTrendsChartCard(props: ShareTrendsChartCardProps) {
             metricConfigInequitable.metricId,
           ]) || nestedInequityData.length === 0
 
+        overrideCardHasData?.(!shouldShowMissingData)
+
         return (
           <>
             {shouldShowMissingData ? (
               <>
                 {/* Chart Title Missing Data */}
-                <ChartTitle title={'Graph unavailable: ' + chartTitle} />
+                <ChartTitle
+                  id={getChartTitleId(HASH_ID, props.isCompareCard)}
+                  title={'Graph unavailable: ' + chartTitle}
+                />
                 <MissingDataAlert
                   dataName={chartTitle}
                   demographicTypeString={
                     DEMOGRAPHIC_DISPLAY_TYPES_LOWER_CASE[props.demographicType]
                   }
                   fips={props.fips}
+                  mentionAllsCards={true}
                 />
               </>
             ) : (
               <>
                 <TrendsChart
+                  chartTitleId={getChartTitleId(HASH_ID, props.isCompareCard)}
                   data={nestedInequityData}
                   chartTitle={chartTitle}
                   chartSubTitle={subtitle}
@@ -268,9 +285,7 @@ export default function ShareTrendsChartCard(props: ShareTrendsChartCardProps) {
                 {props.dataTypeConfig.fullDisplayName} as experienced by
                 different demographic groups compared to their relative shares
                 of the total population. Read more about this calculation in our{' '}
-                <HashLink to={`${METHODOLOGY_PAGE_LINK}#metrics`}>
-                  methodology
-                </HashLink>
+                <Link to={`${METHODOLOGY_PAGE_LINK}#metrics`}>methodology</Link>
                 .
               </HetNotice>
             )}

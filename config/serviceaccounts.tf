@@ -92,30 +92,43 @@ resource "google_project_iam_member" "exporter_runner_binding" {
   member  = format("serviceAccount:%s", google_service_account.exporter_runner_identity.email)
 }
 
-# Service account whose identity is used when running the frontend service.
-# The frontend service does not currently need a custom role because it doesn't
-# require any permissions. If this changes, we will add a new
-# google_project_iam_custom_role similar to the other services.
-resource "google_service_account" "frontend_runner_identity" {
-  # The account id that is used to generate the service account email. Must be 6-30 characters long and
-  # match the regex [a-z]([-a-z0-9]*[a-z0-9]).
-  account_id = var.frontend_runner_identity_id
+# Bucket-scoped role that lets the data server read/write the AI insights cache bucket.
+# Kept separate from data_server_runner_role (which is read-only and project-wide) so
+# the data server only gains write permission on this specific bucket.
+resource "google_project_iam_custom_role" "insights_cache_writer_role" {
+  role_id     = var.insights_cache_writer_role_id
+  title       = "Insights Cache Writer"
+  description = "Allows reading, writing, and deleting objects in the AI insights cache bucket."
+  # delete is needed so flagging/re-enabling an insight can remove its stale cached copy.
+  permissions = ["storage.objects.create", "storage.objects.delete", "storage.objects.get", "storage.objects.update", "storage.buckets.get"]
 }
 
-# Allow the frontend service to make calls to the data server
-resource "google_cloud_run_service_iam_member" "data_server_invoker_binding" {
-  location = google_cloud_run_service.data_server_service.location
-  project  = google_cloud_run_service.data_server_service.project
-  service  = google_cloud_run_service.data_server_service.name
-  role     = "roles/run.invoker"
-  member   = format("serviceAccount:%s", google_service_account.frontend_runner_identity.email)
+resource "google_storage_bucket_iam_member" "data_server_insights_cache_binding" {
+  bucket = google_storage_bucket.insights_cache_bucket.name
+  role   = google_project_iam_custom_role.insights_cache_writer_role.id
+  member = format("serviceAccount:%s", google_service_account.data_server_runner_identity.email)
 }
 
-# Make the frontend service public
+# Bucket-scoped role for the flagged-insights bucket. Needs list (to enumerate flags for
+# review and negative-example prompts) and delete (to update flag records).
+resource "google_project_iam_custom_role" "flagged_insights_writer_role" {
+  role_id     = var.flagged_insights_writer_role_id
+  title       = "Flagged Insights Writer"
+  description = "Allows reading, writing, listing, and deleting objects in the flagged insights bucket."
+  permissions = ["storage.objects.create", "storage.objects.delete", "storage.objects.get", "storage.objects.list", "storage.objects.update", "storage.buckets.get"]
+}
+
+resource "google_storage_bucket_iam_member" "data_server_flagged_insights_binding" {
+  bucket = google_storage_bucket.flagged_insights_bucket.name
+  role   = google_project_iam_custom_role.flagged_insights_writer_role.id
+  member = format("serviceAccount:%s", google_service_account.data_server_runner_identity.email)
+}
+
+# Make the server service public (Cloud Run name is "frontend-service"; see run.tf)
 resource "google_cloud_run_service_iam_member" "frontend_invoker_binding" {
-  location = google_cloud_run_service.frontend_service.location
-  project  = google_cloud_run_service.frontend_service.project
-  service  = google_cloud_run_service.frontend_service.name
+  location = google_cloud_run_service.server_service.location
+  project  = google_cloud_run_service.server_service.project
+  service  = google_cloud_run_service.server_service.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }

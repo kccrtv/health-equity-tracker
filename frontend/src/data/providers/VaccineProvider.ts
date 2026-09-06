@@ -53,7 +53,7 @@ class VaccineProvider extends VariableProvider {
       ? datasetId
       : appendFipsIfNeeded(datasetId, breakdowns)
     const vaxData = await getDataManager().loadDataset(specificDatasetId)
-    let df = vaxData.toDataFrame()
+    let df = vaxData.rows
 
     df = this.filterByGeo(df, breakdowns)
     df = this.renameGeoColumns(df, breakdowns)
@@ -79,9 +79,14 @@ class VaccineProvider extends VariableProvider {
       df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
     } else {
       df = this.applyDemographicBreakdownFilters(df, breakdowns)
-      df = this.removeUnrequestedColumns(df, metricQuery)
     }
-    return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+    df = this.removeUnrequestedColumns(df, metricQuery)
+    return new MetricQueryResponse(
+      df,
+      consumedDatasetIds,
+      undefined,
+      !!isFallbackId,
+    )
   }
 
   allowsBreakdowns(breakdowns: Breakdowns): boolean {

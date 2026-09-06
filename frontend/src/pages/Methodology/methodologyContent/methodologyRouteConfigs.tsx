@@ -313,6 +313,10 @@ export const methodologyRouteConfigs: RouteConfig[] = [
         path: 'pdoh-data-metrics',
       },
       {
+        label: 'County-Level U.S. Congress Data',
+        path: 'county-level-congress-data',
+      },
+      {
         label: 'Historical Tracking',
         path: 'historical-tracking',
       },
@@ -347,6 +351,10 @@ export const methodologyRouteConfigs: RouteConfig[] = [
     component: <SdohLink />,
     subLinks: [
       { label: 'Data Sourcing', path: 'sdoh-data-sourcing' },
+      {
+        label: 'Poverty and Uninsurance (ACS)',
+        path: 'sdoh-acs-data-sourcing',
+      },
       { label: 'Demographics', path: 'demographic-stratification' },
       { label: 'Data Sources', path: 'sdoh-data-sources' },
       { label: 'Key Terms', path: 'sdoh-key-terms' },

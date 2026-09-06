@@ -17,6 +17,17 @@ resource "google_cloud_run_service" "ingestion_service" {
       containers {
         image = format("gcr.io/%s/%s@%s", var.project_id, var.ingestion_image_name, var.ingestion_image_digest)
 
+        env {
+          name = "CENSUS_API_KEY"
+          value_from {
+            secret_key_ref {
+              # Secret is created/rotated manually in Secret Manager (see secrets.tf).
+              name = "census-api-key"
+              key  = "latest"
+            }
+          }
+        }
+
         resources {
           limits = {
             memory = "4G"
@@ -64,6 +75,26 @@ resource "google_cloud_run_service" "gcs_to_bq_service" {
           name  = "MANUAL_UPLOADS_PROJECT"
           value = var.manual_uploads_project_id
         }
+        env {
+          name = "AHR_API_KEY"
+          value_from {
+            secret_key_ref {
+              # Secret is created/rotated manually in Secret Manager (see secrets.tf).
+              name = "ahr-api-key"
+              key  = "latest"
+            }
+          }
+        }
+        env {
+          name = "CENSUS_API_KEY"
+          value_from {
+            secret_key_ref {
+              # Secret is created/rotated manually in Secret Manager (see secrets.tf).
+              name = "census-api-key"
+              key  = "latest"
+            }
+          }
+        }
 
         resources {
           limits = {
@@ -83,31 +114,87 @@ resource "google_cloud_run_service" "gcs_to_bq_service" {
   autogenerate_revision_name = true
 }
 
-# Cloud Run service that serves data to client frontends.
-resource "google_cloud_run_service" "data_server_service" {
-  name     = var.data_server_service_name
+# Serves healthequitytracker.org. The Cloud Run service name is pinned to
+# "frontend-service" by the manually-managed domain mapping (see the domain
+# mapping note below). Terraform resource label is server_service; the Cloud
+# Run name must stay "frontend-service" or the domain mapping breaks.
+resource "google_cloud_run_service" "server_service" {
+  name     = var.frontend_service_name
   location = var.compute_region
   project  = var.project_id
 
   template {
     metadata {
       annotations = {
-        "autoscaling.knative.dev/maxScale" = "80" # User-facing can scale to handle many requests
+        "autoscaling.knative.dev/maxScale" = "50" # User-facing can scale to handle many requests
       }
     }
     spec {
       containers {
-        image = format("gcr.io/%s/%s@%s", var.project_id, var.data_server_image_name, var.data_server_image_digest)
+        image = format("gcr.io/%s/%s@%s", var.project_id, var.server_image_name, var.server_image_digest)
         env {
-          # GCS bucket from where the data tables are read.
           name  = "GCS_BUCKET"
           value = var.export_bucket
+        }
+        env {
+          name  = "METADATA_FILENAME"
+          value = var.metadata_filename
+        }
+        env {
+          name  = "INSIGHTS_CACHE_BUCKET"
+          value = var.insights_cache_bucket
+        }
+        env {
+          name  = "FLAGGED_INSIGHTS_BUCKET"
+          value = var.flagged_insights_bucket
+        }
+        env {
+          name = "GEMINI_API_KEY"
+          value_from {
+            secret_key_ref {
+              # Secret is created/rotated manually in Secret Manager (see secrets.tf).
+              name = "gemini-api-key"
+              key  = "latest"
+            }
+          }
+        }
+        env {
+          name = "WEBFLOW_API_TOKEN"
+          value_from {
+            secret_key_ref {
+              # Secret is created/rotated manually in Secret Manager (see secrets.tf).
+              name = "webflow-api-token"
+              key  = "latest"
+            }
+          }
+        }
+        env {
+          name  = "INSIGHT_NEGATIVE_EXAMPLES_ENABLED"
+          value = "true"
+        }
+        env {
+          name  = "GEMINI_MODEL"
+          value = var.gemini_model
+        }
+        # Generation ceilings, tracked in a durable ledger in the insights cache
+        # bucket. The daily ceiling keeps one unusual day from consuming the month.
+        env {
+          name  = "INSIGHT_MAX_GENERATIONS_PER_DAY"
+          value = var.insight_max_generations_per_day
+        }
+        env {
+          name  = "INSIGHT_MAX_GENERATIONS_PER_MONTH"
+          value = var.insight_max_generations_per_month
+        }
+        env {
+          name  = "INSIGHT_ALLOWED_ORIGINS"
+          value = join(",", var.insight_allowed_origins)
         }
 
         resources {
           limits = {
-            memory = "8Gi"
-            cpu    = 4
+            memory = "512Mi"
+            cpu    = 1
           }
         }
       }
@@ -168,53 +255,17 @@ resource "google_cloud_run_service" "exporter_service" {
 }
 
 
-# Cloud Run service that serves the frontend
-resource "google_cloud_run_service" "frontend_service" {
-  name     = var.frontend_service_name
-  location = var.compute_region
-  project  = var.project_id
+# Domain mapping for the custom domain is managed manually, not via Terraform.
+# Cloud Run domain mappings require the caller to have verified domain ownership in Search Console.
+# The CI service account does not have that verification, so Terraform apply would fail with
+# "Caller is not authorized to administer the domain."
+# To create or update the mapping, run as an authorized user:
+#   gcloud beta run domain-mappings create --service=frontend-service \
+#     --domain=<domain> --project=<project> --region=us-central1
 
-  template {
-    metadata {
-      annotations = {
-        "autoscaling.knative.dev/maxScale" = "80" # User-facing can scale to handle many requests
-      }
-    }
-    spec {
-      containers {
-        image = format("gcr.io/%s/%s@%s", var.project_id, var.frontend_image_name, var.frontend_image_digest)
-        env {
-          # URL of the Data Server Cloud Run service.
-          name  = "DATA_SERVER_URL"
-          value = google_cloud_run_service.data_server_service.status.0.url
-        }
-
-        resources {
-          limits = {
-            memory = "8Gi"
-            cpu    = 4
-          }
-        }
-
-      }
-      service_account_name = google_service_account.frontend_runner_identity.email
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
-  }
-  autogenerate_revision_name = true
-}
-
-# Output the URL of the data server and frontend for use in e2e tests.
-output "data_server_url" {
-  value = google_cloud_run_service.data_server_service.status.0.url
-}
-
+# Output the URL of the server for use in e2e tests and the buildAllAndDeploy action.
 output "frontend_url" {
-  value = google_cloud_run_service.frontend_service.status.0.url
+  value = google_cloud_run_service.server_service.status.0.url
 }
 
 # Output the URLs of the pipeline services (previously used for DAGs)

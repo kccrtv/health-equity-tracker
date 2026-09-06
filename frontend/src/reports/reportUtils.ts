@@ -7,6 +7,7 @@ import {
   AHR_PARTIAL_RESTRICTED_DEMOGRAPHIC_DETAILS,
   CHR_DATATYPE_IDS,
   CHR_RESTRICTED_DEMOGRAPHIC_DETAILS,
+  SEVERE_MATERNAL_MORBIDITY_RESTRICTED_DEMOGRAPHIC_DETAILS,
 } from '../data/providers/AhrProvider'
 import {
   CAWP_DATA_TYPES,
@@ -125,7 +126,8 @@ export function configsContainsMatchingId(
   bothNeedToMatch?: boolean,
 ) {
   return bothNeedToMatch
-    ? configs.every((config) => ids.includes(config.dataTypeId))
+    ? configs.length > 0 &&
+        configs.every((config) => ids.includes(config.dataTypeId))
     : configs.some((config) => ids.includes(config.dataTypeId))
 }
 
@@ -134,7 +136,42 @@ export function getAllDemographicOptions(
   fips1: Fips,
   dataTypeConfig2?: DataTypeConfig | null,
   fips2?: Fips,
-) {
+): {
+  enabledDemographicOptionsMap: Partial<Record<string, DemographicType>>
+  disabledDemographicOptions: string[][]
+} {
+  // when comparing two different topics, offer the union of each topic's own
+  // options; the topic missing a demographic falls back to combined 'All' rates
+  if (
+    dataTypeConfig1 &&
+    dataTypeConfig2 &&
+    dataTypeConfig1.dataTypeId !== dataTypeConfig2.dataTypeId
+  ) {
+    const options1 = getAllDemographicOptions(dataTypeConfig1, fips1)
+    const options2 = getAllDemographicOptions(dataTypeConfig2, fips2 ?? fips1)
+
+    const enabledDemographicOptionsMap = {
+      ...options1.enabledDemographicOptionsMap,
+      ...options2.enabledDemographicOptionsMap,
+    }
+
+    const enabledLabels = Object.keys(enabledDemographicOptionsMap)
+    const disabledDemographicOptions: string[][] = []
+    for (const [option, reason] of [
+      ...options1.disabledDemographicOptions,
+      ...options2.disabledDemographicOptions,
+    ]) {
+      if (
+        !enabledLabels.includes(option) &&
+        !disabledDemographicOptions.some(([opt]) => opt === option)
+      ) {
+        disabledDemographicOptions.push([option, reason])
+      }
+    }
+
+    return { enabledDemographicOptionsMap, disabledDemographicOptions }
+  }
+
   const configs: DataTypeConfig[] = []
   dataTypeConfig1 && configs.push(dataTypeConfig1)
   dataTypeConfig2 && configs.push(dataTypeConfig2)
@@ -157,6 +194,14 @@ export function getAllDemographicOptions(
     enabledDemographicOptionsMap = ONLY_RACE_TYPE_MAP
     disabledDemographicOptionsWithRepeats.push(
       ...MATERNAL_MORTALITY_RESTRICTED_DEMOGRAPHIC_DETAILS,
+    )
+  }
+
+  // SEVERE MATERNAL MORBIDITY (AHR — race and age only, no sex)
+  if (configsContainsMatchingId(configs, ['severe_maternal_morbidity'])) {
+    enabledDemographicOptionsMap = ONLY_RACE_AGE_MAP
+    disabledDemographicOptionsWithRepeats.push(
+      ...SEVERE_MATERNAL_MORBIDITY_RESTRICTED_DEMOGRAPHIC_DETAILS,
     )
   }
 
@@ -324,4 +369,6 @@ export function getAllDemographicOptions(
 export const CARDS_THAT_SHOULD_FALLBACK_TO_ALLS: ScrollableHashId[] = [
   'rate-map',
   'rates-over-time',
+  'rate-chart',
+  'data-table',
 ]

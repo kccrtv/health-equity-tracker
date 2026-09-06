@@ -1,8 +1,7 @@
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react'
-import { visualizer } from 'rollup-plugin-visualizer'
 import { defineConfig } from 'vite'
 import svgrPlugin from 'vite-plugin-svgr'
-import viteTsconfigPaths from 'vite-tsconfig-paths'
 import { configDefaults } from 'vitest/config'
 
 // biome-ignore lint/correctness/noUnusedFunctionParameters: dont need it
@@ -14,15 +13,8 @@ export default defineConfig(({ mode }) => {
       outDir: 'build',
       sourcemap: !isDeployPreview, // Disable sourcemaps for deploy previews
       minify: !isDeployPreview,
-
-      rollupOptions: isDeployPreview
-        ? {
-            output: {
-              manualChunks: undefined, // Disable code splitting for deploy previews
-            },
-          }
-        : {},
     },
+    resolve: { tsconfigPaths: true },
     cache: true,
     server: {
       open: true,
@@ -37,14 +29,26 @@ export default defineConfig(({ mode }) => {
       ...(isDeployPreview
         ? []
         : [
-            viteTsconfigPaths(), // Keep only for non-preview environments
             svgrPlugin(), // Keep only for non-preview environments
-            visualizer({
-              open: !process.env.CI,
-              gzipSize: true,
-              brotliSize: true,
-            }),
           ]),
+
+      // Upload source maps to Sentry when auth token is available (dev/prod builds)
+      ...(process.env.SENTRY_AUTH_TOKEN
+        ? [
+            sentryVitePlugin({
+              org: 'morehouse-school-of-medicine',
+              project: 'health-equity-tracker',
+              authToken: process.env.SENTRY_AUTH_TOKEN,
+              sourcemaps: { filesToDeleteAfterUpload: ['./build/**/*.map'] },
+              // Without this the plugin throws and fails the build. Sentry
+              // release tracking is a debugging aid and must never be able to
+              // block a deploy. Covers release creation and source map upload.
+              errorHandler: (err) => {
+                console.warn('[sentry] step failed, continuing build:', err)
+              },
+            }),
+          ]
+        : []),
     ],
     test: {
       exclude: [...configDefaults.exclude, 'playwright-tests/*'],

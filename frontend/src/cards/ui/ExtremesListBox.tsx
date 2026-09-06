@@ -1,4 +1,3 @@
-import AnimateHeight from 'react-animate-height'
 import type {
   DataTypeConfig,
   MetricConfig,
@@ -56,11 +55,8 @@ export function ExtremesListBox(props: ExtremesListBoxProps) {
   )
 
   return (
-    <AnimateHeight
-      duration={500}
-      height={props.isOpen ? 'auto' : 47}
-      onAnimationEnd={() => window.dispatchEvent(new Event('resize'))}
-      className={`mt-4 rounded-md bg-listbox-color text-left ${props.isOpen ? '' : 'hide-on-screenshot'}`}
+    <div
+      className={`mt-4 rounded-md bg-standard-info text-left ${props.isOpen ? '' : 'hide-on-screenshot'}`}
     >
       <HetExpandableBoxButton
         expandBoxLabel={`${placesType} rate extremes`}
@@ -70,9 +66,14 @@ export function ExtremesListBox(props: ExtremesListBoxProps) {
         }}
       />
 
-      {/* Don't render collapsed info, so keyboard nav will skip */}
-      {props.isOpen && (
-        <>
+      <div
+        className={`grid motion-safe:transition-[grid-template-rows] motion-safe:duration-500 ${props.isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+        onTransitionEnd={(e) => {
+          if (e.target === e.currentTarget)
+            window.dispatchEvent(new Event('resize'))
+        }}
+      >
+        <div className='min-h-0 overflow-hidden' inert={!props.isOpen}>
           <div className='mx-4 my-0'>
             <div className='flex flex-row justify-around'>
               <ExtremeList
@@ -117,8 +118,8 @@ export function ExtremesListBox(props: ExtremesListBoxProps) {
             <a href={`#${WHAT_DATA_ARE_MISSING_ID}`}>data reporting gaps</a>{' '}
             when interpreting the highest and lowest rates.
           </p>
-        </>
-      )}
-    </AnimateHeight>
+        </div>
+      </div>
+    </div>
   )
 }

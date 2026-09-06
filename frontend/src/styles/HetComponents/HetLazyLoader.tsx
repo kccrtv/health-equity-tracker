@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useInView } from 'react-intersection-observer'
+import { useInView } from '../../utils/hooks/useInView'
 
 interface HetLazyLoaderProps {
   children: ReactNode

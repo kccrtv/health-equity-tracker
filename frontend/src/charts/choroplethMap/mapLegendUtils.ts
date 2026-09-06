@@ -1,11 +1,13 @@
-import * as d3 from 'd3'
-import { het } from '../../styles/DesignTokens'
+import type { Selection } from 'd3'
+import { scaleLinear } from 'd3'
+import type { MetricConfig } from '../../data/config/MetricConfigTypes'
+import { colors } from '../../styles/tokens/colors'
+import { NO_DATA_MESSAGE, PHRMA_ADHERENCE_BREAKPOINTS } from '../mapGlobals'
+import { formatMetricValue } from './mapHelpers'
 import type { ColorScale } from './types'
 
-const { altGrey } = het
-
 export function createUnknownLegend(
-  legendGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
+  legendGroup: Selection<SVGGElement, unknown, null, undefined>,
   options: {
     width: number
     colorScale: ColorScale
@@ -15,9 +17,13 @@ export function createUnknownLegend(
   const gradientLength = width * 0.35
   const legendHeight = 15
   const [legendLowerBound, legendUpperBound] = colorScale.domain()
+  const range = legendUpperBound - legendLowerBound
+
+  // Skip gradient when all values are identical (no meaningful range to display)
+  if (range === 0) return
+
   const tickCount = 2
-  const ticks = d3
-    .scaleLinear()
+  const ticks = scaleLinear()
     .domain([legendLowerBound, legendUpperBound])
     .nice(tickCount)
     .ticks(tickCount)
@@ -33,17 +39,20 @@ export function createUnknownLegend(
     .attr('x1', '0%')
     .attr('x2', '100%')
 
+  // Use 10 evenly-spaced stops so multi-hue scales (greenblue, viridis, etc.)
+  // render all intermediate hues, not just a linear RGB blend of the endpoints.
+  const stopCount = 10
+  const stops = Array.from({ length: stopCount }, (_, i) => {
+    const t = i / (stopCount - 1)
+    return {
+      offset: `${t * 100}%`,
+      color: colorScale(legendLowerBound + t * range),
+    }
+  })
+
   gradient
     .selectAll('stop')
-    .data(
-      ticks.map((value) => ({
-        offset: `${
-          ((value - legendLowerBound) / (legendUpperBound - legendLowerBound)) *
-          100
-        }%`,
-        color: colorScale(value),
-      })),
-    )
+    .data(stops)
     .join('stop')
     .attr('offset', (d) => d.offset)
     .attr('stop-color', (d) => d.color)
@@ -62,49 +71,55 @@ export function createUnknownLegend(
     .attr('y', 0)
     .attr('width', 20)
     .attr('height', legendHeight)
-    .style('fill', altGrey)
+    .style('fill', colors.altWhite)
+    .style('stroke', colors.altGray)
+    .style('stroke-width', 1)
 
   legendContainer
     .append('text')
     .attr('x', 50 + gradientLength + 50)
     .attr('y', 12)
     .style('font', '10px sans-serif')
-    .text('no data')
+    .text(NO_DATA_MESSAGE)
 
   const labelGroup = legendContainer
     .append('g')
-    .attr('transform', `translate(50, ${legendHeight + 10})`) // Align to gradient start
+    .attr('transform', `translate(50, ${legendHeight + 10})`)
 
-  const constrainedTicks = ticks.map((label) => {
-    // Constrain the positions of ticks to the gradient length
-    const position =
-      ((label - legendLowerBound) / (legendUpperBound - legendLowerBound)) *
-      gradientLength
+  const formatLabel = (val: number) =>
+    Number.isInteger(val) ? val.toString() : val.toFixed(1)
 
-    // Clamp positions to the gradient bounds
-    const clampedPosition = Math.min(Math.max(position, 10), gradientLength)
-    return { label, position: clampedPosition }
+  // Always label the actual min/max bounds; add any intermediate nice ticks
+  // that are at least 30px from either boundary to avoid overlapping labels.
+  const minPixelGap = 30
+  const middleTicks = ticks.filter((tick) => {
+    const position = ((tick - legendLowerBound) / range) * gradientLength
+    return position > minPixelGap && position < gradientLength - minPixelGap
   })
+  const constrainedTicks = [
+    { label: formatLabel(legendLowerBound), position: 0 },
+    ...middleTicks.map((label) => ({
+      label: formatLabel(label),
+      position: ((label - legendLowerBound) / range) * gradientLength,
+    })),
+    { label: formatLabel(legendUpperBound), position: gradientLength },
+  ]
 
-  // Add labels
   constrainedTicks.forEach(({ label, position }) => {
     labelGroup
       .append('text')
-      .attr('x', position) // Correctly aligned within gradient bounds
+      .attr('x', position)
       .attr('text-anchor', 'middle')
       .style('font', '10px sans-serif')
       .text(`${label}%`)
   })
 }
 
-import type { MetricConfig } from '../../data/config/MetricConfigTypes'
-import { PHRMA_ADHERENCE_BREAKPOINTS } from '../mapGlobals'
-import { formatMetricValue } from './tooltipUtils'
-
 export interface LegendItemData {
   color: string
   label: string
   value: any
+  borderColor?: string
 }
 
 /**
@@ -118,10 +133,21 @@ export function createLabelFormatter(metricConfig: MetricConfig) {
  * Creates legend items for datasets with 1-4 unique values
  */
 export function createLegendForSmallDataset(
-  uniqueValues: number[],
+  values: number[],
   colorScale: ColorScale,
   labelFormat: (value: number) => string,
 ): LegendItemData[] {
+  // Rates are labeled to two significant figures, so distinct values can share a
+  // label (119.6 and 123 both read "120") and produce a bucket like "120 – 120".
+  // Collapse them to the first value carrying each label.
+  const seenLabels = new Set<string>()
+  const uniqueValues = values.filter((value) => {
+    const label = labelFormat(value)
+    if (seenLabels.has(label)) return false
+    seenLabels.add(label)
+    return true
+  })
+
   if (uniqueValues.length === 1) {
     // Single value - just show that value
     return [
@@ -198,7 +224,9 @@ export function createQuantileLegend(
   colorScale: ColorScale & { quantiles(): number[] },
   labelFormat: (value: number) => string,
 ): LegendItemData[] {
-  const thresholds = colorScale.quantiles()
+  // Deduplicate: when many data points share the same value, quantile boundaries
+  // can repeat (e.g. [11, 11, 31, 31]), producing labels like "31 – 31".
+  const thresholds = [...new Set(colorScale.quantiles())]
 
   if (thresholds.length <= 1) {
     return []

@@ -1,5 +1,7 @@
 import type { ColorScheme } from '../../charts/choroplethMap/types'
 import type { CategoryTypeId } from '../../utils/MadLibs'
+import type { GeographicBreakdown } from '../query/Breakdowns'
+import type { DemographicGroup } from '../utils/Constants'
 import type { DropdownVarId } from './DropDownIds'
 import type {
   BehavioralHealthDataTypeId,
@@ -65,7 +67,9 @@ export type MetricId =
   | 'population'
   | 'svi'
   | 'ahr_population_estimated_total'
-  | 'ahr_population_18plus'
+  | 'ahr_18plus_population_estimated_total'
+  | 'ahr_18plus_population_pct'
+  | 'chr_population_pct'
 
 // The type of metric indicates where and how this a MetricConfig is represented in the frontend:
 // What chart types are applicable, what metrics are shown together, display names, etc.
@@ -80,6 +84,13 @@ export type MetricType =
 
 export type TimeSeriesCadenceType = 'monthly' | 'yearly' | 'fourYearly'
 
+// Narrowed MetricConfig for rateComparisonMetricForAlls: shortLabel must be a
+// DemographicGroup so GROUP_COLOR_MAP can key on it without widening to string.
+export interface ComparisonMetricConfig
+  extends Omit<MetricConfig, 'shortLabel'> {
+  shortLabel: DemographicGroup
+}
+
 export interface MetricConfig {
   metricId: MetricId
   columnTitleHeader?: string
@@ -89,10 +100,24 @@ export interface MetricConfig {
   unknownsLabel?: string
   type: MetricType
   populationComparisonMetric?: MetricConfig
+  // Opt-in marker for a population column drawn from the general ACS population
+  // rather than the rate's own denominator. Set it only where that mismatch is
+  // deliberate, so the caveat cannot false-positive on the topics whose
+  // population column already matches their denominator.
+  isGeneralPopulationComparison?: boolean
+  // Who this population column actually counts, phrased to sit mid-sentence
+  // (e.g. 'all adults'). Set on the population metric of an
+  // isGeneralPopulationComparison rate so the caveat can name the mismatch.
+  generalPopulationLabel?: string
   rateNumeratorMetric?: MetricConfig
   rateDenominatorMetric?: MetricConfig
-  rateComparisonMetricForAlls?: MetricConfig
+  rateComparisonMetricForAlls?: ComparisonMetricConfig
   timeSeriesCadence?: TimeSeriesCadenceType
+
+  // Boolean companion column marking rows where the source withheld this rate to
+  // protect privacy. A card must include it in its requested metricIds or
+  // removeUnrequestedColumns drops it before the data ever arrives.
+  suppressionFlagMetricId?: MetricId
 
   // This metric is one where the denominator only includes records where
   // demographics are known. For example, for "share of covid cases" in the US
@@ -120,6 +145,18 @@ interface InfoWithCitations {
   citations?: Citation[]
 }
 
+// Only used to build the override types below, so `null` is permitted at every
+// depth: deepMerge reads it as "delete this key", not as a value to assign.
+export type DeepPartial<T> = {
+  [K in keyof T]?:
+    | (T[K] extends Array<any>
+        ? T[K]
+        : T[K] extends object
+          ? DeepPartial<T[K]>
+          : T[K])
+    | null
+}
+
 export interface DataTypeConfig {
   dataTypeId: DataTypeId
   rateComparisonDataTypeId?: DataTypeId
@@ -145,6 +182,22 @@ export interface DataTypeConfig {
   categoryId: CategoryTypeId
   ageSubPopulationLabel?: string
   otherSubPopulationLabel?: string
+  // Optional: override specific, deeply nested fields
+  // Used for topics with different sources per geographic breakdown
+  // Note: `undefined` override values are ignored; use `null` to delete a field
+  // the base config declares but this geography's source does not provide.
+  geoOverrides?: Partial<Record<GeographicBreakdown, DataTypeConfigOverride>>
+}
+
+export type MetricConfigOverride = DeepPartial<MetricConfig>
+
+export type DataTypeConfigOverride = Omit<
+  DeepPartial<DataTypeConfig>,
+  'metrics' | 'geoOverrides'
+> & {
+  metrics?: {
+    [K in keyof DataTypeConfig['metrics']]?: MetricConfigOverride | null
+  }
 }
 
 export type CardMetricType = 'rate' | 'share' | 'inequity' | 'ratio'

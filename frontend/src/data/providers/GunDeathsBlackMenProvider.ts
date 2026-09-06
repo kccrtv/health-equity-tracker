@@ -13,6 +13,7 @@ const GUN_DEATHS_BLACK_MEN_METRIC_IDS: MetricId[] = [
   'gun_homicides_black_men_pct_relative_inequity',
   'gun_homicides_black_men_pct_share',
   'gun_homicides_black_men_per_100k',
+  'gun_homicides_black_men_per_100k_is_suppressed',
   'gun_homicides_black_men_population_estimated_total',
   'gun_homicides_black_men_population_pct',
 ]
@@ -48,7 +49,7 @@ class GunViolenceBlackMenProvider extends VariableProvider {
 
       const gunViolenceBlackMenData =
         await getDataManager().loadDataset(datasetId)
-      let df = gunViolenceBlackMenData.toDataFrame()
+      let df = gunViolenceBlackMenData.rows
 
       df = this.filterByGeo(df, breakdowns)
       df = this.renameGeoColumns(df, breakdowns)
@@ -56,11 +57,16 @@ class GunViolenceBlackMenProvider extends VariableProvider {
         df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
       } else {
         df = this.applyDemographicBreakdownFilters(df, breakdowns)
-        df = this.removeUnrequestedColumns(df, metricQuery)
       }
+      df = this.removeUnrequestedColumns(df, metricQuery)
 
       const consumedDatasetIds = [datasetId]
-      return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+      return new MetricQueryResponse(
+        df,
+        consumedDatasetIds,
+        undefined,
+        !!isFallbackId,
+      )
     } catch (error) {
       console.error('Error fetching gun homicides of Black men data:', error)
       throw error

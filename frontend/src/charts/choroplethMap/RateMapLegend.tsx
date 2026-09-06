@@ -26,12 +26,12 @@ interface RateMapLegendProps {
   mapConfig: MapConfig
   isPhrmaAdherence: boolean
   isSummaryLegend?: boolean
+  isExtremesMode?: boolean
   fips: Fips
   isMulti?: boolean
   legendTitle: string
   isCompareMode?: boolean
   colorScale: ColorScale
-  allMissingDataIsSuppressed?: boolean
 }
 
 export default function RateMapLegend(props: RateMapLegendProps) {
@@ -44,8 +44,8 @@ export default function RateMapLegend(props: RateMapLegendProps) {
     fipsTypeDisplayName,
     isPhrmaAdherence,
     isSummaryLegend,
+    isExtremesMode,
     colorScale,
-    allMissingDataIsSuppressed,
   } = props
 
   const [containerRef] = useResponsiveWidth()
@@ -69,8 +69,8 @@ export default function RateMapLegend(props: RateMapLegendProps) {
     fipsTypeDisplayName,
     isPhrmaAdherence,
     isSummaryLegend,
+    isExtremesMode,
     colorScale,
-    allMissingDataIsSuppressed,
   ])
 
   return (
@@ -92,7 +92,7 @@ export default function RateMapLegend(props: RateMapLegendProps) {
 
           <div
             // all views
-            className={`${LEGEND_ITEMS_BOX_CLASS} w-2/3 columns-1 tiny:columns-2 gap-1 space-y-1 border-0 border-grey-grid-color-darker border-t border-solid px-4 pt-4 ${
+            className={`${LEGEND_ITEMS_BOX_CLASS} w-2/3 columns-1 tiny:columns-2 gap-x-3 space-y-1.5 border-0 border-gray-grid-color-darker border-t border-solid px-4 pt-4 ${
               props.isMulti
                 ? // multimap only
                   'columns-auto sm:columns-3 lg:columns-4'
@@ -104,8 +104,12 @@ export default function RateMapLegend(props: RateMapLegendProps) {
             }`}
           >
             {legendItems.map((item) => (
-              <div key={item.label} className='mb-1 break-inside-avoid'>
-                <LegendItem color={item.color} label={item.label} />
+              <div key={item.label} className='break-inside-avoid'>
+                <LegendItem
+                  color={item.color}
+                  label={item.label}
+                  borderColor={item.borderColor}
+                />
               </div>
             ))}
           </div>

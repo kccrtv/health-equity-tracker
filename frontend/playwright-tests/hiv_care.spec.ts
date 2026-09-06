@@ -34,9 +34,10 @@ test('HIV Linkage To Care', async ({ page }) => {
     .locator('#rate-chart')
     .getByRole('heading', { name: 'People diagnosed with HIV,' })
     .click()
-  await page.getByText('age', { exact: true }).click()
+  await page.locator('#rate-chart').getByText('age', { exact: true }).click()
   await page
-    .getByLabel('Bar Chart Showing Linkage to')
+    .locator('#rate-chart')
+    .getByRole('img', { name: 'Linkage to HIV care in the' })
     .getByText('% linkage')
     .click()
   await page.getByRole('button', { name: 'Unknown demographic map' }).click()
@@ -71,7 +72,7 @@ test('HIV Linkage To Care', async ({ page }) => {
     .locator('circle')
     .click()
   await page
-    .getByLabel('Comparison bar chart showing')
+    .locator('#population-vs-distribution div[role="graphics-document"]')
     .getByText('age', { exact: true })
     .click()
   await page.getByText('% of diagnosed population vs').click()

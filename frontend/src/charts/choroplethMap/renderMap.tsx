@@ -1,12 +1,14 @@
-import * as d3 from 'd3'
+import { geoPath, select } from 'd3'
 import { TERRITORY_CODES } from '../../data/utils/ConstantsGeography'
-import { het } from '../../styles/DesignTokens'
+import { DATA_SUPPRESSED, NO_DATA_MESSAGE } from '../mapGlobals'
 import { getCountyAddOn } from '../mapHelperFunctions'
-import { getFillColor } from './colorSchemes'
+import { getFillColor, getStrokeColor } from './colorSchemes'
 import {
   createDataMap,
+  formatMetricValue,
   getDenominatorPhrase,
   getNumeratorPhrase,
+  getTooltipLabel,
 } from './mapHelpers'
 import { TERRITORIES } from './mapTerritoryHelpers'
 import { STROKE_WIDTH } from './mapUtils'
@@ -14,15 +16,16 @@ import {
   createEventHandler,
   createMouseEventOptions,
 } from './mouseEventHandlers'
-import { getTooltipLabel, hideTooltips } from './tooltipUtils'
 import type {
   ColorScale,
   InitializeSvgOptions,
   RenderMapOptions,
 } from './types'
 
-const { white: WHITE, borderColor: BORDER_GREY } = het
 const MARGIN = { top: 0, right: 0, bottom: 0, left: 0 }
+// Extra downward nudge of the map group on mobile; must also be subtracted
+// from the projection fit height or the bottom of the map clips off the SVG
+const MOBILE_TOP_OFFSET = 10
 
 export const renderMap = (options: RenderMapOptions) => {
   const {
@@ -47,12 +50,13 @@ export const renderMap = (options: RenderMapOptions) => {
     colorScale,
   } = options
 
-  d3.select(svgRef.current).selectAll('*').remove()
+  select(svgRef.current).selectAll('*').remove()
 
   const territoryHeight = fips.isUsa()
     ? TERRITORIES.marginTop + TERRITORIES.radius * 2
     : 0
-  const mapHeight = height - territoryHeight
+  const mapHeight =
+    height - territoryHeight - (isMobile ? MOBILE_TOP_OFFSET : 0)
 
   const { mapGroup } = initializeSvg({
     svgRef: svgRef,
@@ -66,7 +70,7 @@ export const renderMap = (options: RenderMapOptions) => {
   const geographyType = getCountyAddOn(fips, showCounties)
 
   projection.fitSize([width, mapHeight], features)
-  const path = d3.geoPath(projection)
+  const path = geoPath(projection)
 
   const tooltipLabel = getTooltipLabel(
     isUnknownsMap,
@@ -103,27 +107,28 @@ export const renderMap = (options: RenderMapOptions) => {
     demographicType,
   )
 
-  // Add event listeners
-  window.addEventListener('wheel', hideTooltips)
-  window.addEventListener('click', hideTooltips)
-  window.addEventListener('touchmove', hideTooltips)
-
-  // Create a cleanup function for event listeners
-  const cleanupEventListeners = () => {
-    window.removeEventListener('wheel', hideTooltips)
-    window.removeEventListener('click', hideTooltips)
-    window.removeEventListener('touchmove', hideTooltips)
-  }
+  // Extremes mode draws only the highest and lowest geographies; the rest are
+  // background context carrying no value. Announcing each one would make a
+  // screen reader user walk thousands of counties to reach the handful that
+  // hold the answer, so they leave the accessibility tree entirely.
+  const isExtremesContext = (d: any) =>
+    isExtremesMode && dataMap.get(d.id?.toString())?.value == null
 
   // Draw main map
+  // Render suppressed counties last so their dark strokes appear on top at shared edges
+  const filteredFeatures = features.features.filter(
+    (f) => f.id && (!fips.isUsa() || !TERRITORY_CODES[f.id.toString()]),
+  )
+  const sortedFeatures = filteredFeatures.toSorted((a, b) => {
+    const aIsSuppressed = dataMap.get(String(a.id))?.isSuppressed || false
+    const bIsSuppressed = dataMap.get(String(b.id))?.isSuppressed || false
+    // Non-suppressed first, suppressed last
+    return aIsSuppressed === bIsSuppressed ? 0 : aIsSuppressed ? 1 : -1
+  })
+
   mapGroup
     .selectAll('path')
-    // skip territory shapes on national map
-    .data(
-      features.features.filter(
-        (f) => f.id && (!fips.isUsa() || !TERRITORY_CODES[f.id.toString()]),
-      ),
-    )
+    .data(sortedFeatures)
     .join('path')
     .attr('d', (d) => path(d) || '')
     .attr('fill', (d) =>
@@ -136,26 +141,53 @@ export const renderMap = (options: RenderMapOptions) => {
         isMultiMap: isMulti,
       }),
     )
-    .attr('stroke', isExtremesMode ? BORDER_GREY : WHITE)
+    .attr('stroke', (d) =>
+      getStrokeColor({
+        d,
+        dataMap,
+        colorScale: colorScale as ColorScale,
+        isExtremesMode: isExtremesMode,
+        mapConfig: mapConfig,
+        isMultiMap: isMulti,
+      }),
+    )
     .attr('stroke-width', STROKE_WIDTH)
+    .attr('aria-hidden', (d: any) => (isExtremesContext(d) ? 'true' : null))
+    .attr('role', (d: any) => (isExtremesContext(d) ? null : 'img'))
+    .attr('tabindex', '-1')
+    .attr('aria-label', (d: any) => {
+      if (isExtremesContext(d)) return null
+      const id = d.id?.toString()
+      const name = d.properties?.name ?? id ?? 'Unknown'
+      const namePlace = geographyType ? `${name} ${geographyType}` : name
+      const mapData = dataMap.get(id)
+      if (!mapData || mapData.value == null) {
+        return `${namePlace}: ${
+          mapData?.isSuppressed ? DATA_SUPPRESSED : NO_DATA_MESSAGE
+        }`
+      }
+      const formattedValue = formatMetricValue(
+        mapData.value as number,
+        metricConfig,
+      )
+      const label = tooltipLabel
+        ? `${tooltipLabel} ${formattedValue}`
+        : formattedValue
+      return `${namePlace}: ${label}`
+    })
     .on('mouseover', (event: any, d) => {
-      hideTooltips()
       createEventHandler('mouseover', mouseEventOptions)(event, d)
-    })
-    .on('pointerdown', (event: any, d) => {
-      hideTooltips()
-      createEventHandler('pointerdown', mouseEventOptions)(event, d)
-    })
-    .on('mousemove', (event: any, d) => {
-      createEventHandler('mousemove', mouseEventOptions)(event, d)
     })
     .on('mouseout', (event: any, d) => {
       createEventHandler('mouseout', mouseEventOptions)(event, d)
     })
-    .on('touchstart', (event: any, d) => {
-      hideTooltips()
-      createEventHandler('touchstart', mouseEventOptions)(event, d)
-    })
+    .on(
+      'touchstart',
+      (event: any, d) => {
+        createEventHandler('touchstart', mouseEventOptions)(event, d)
+      },
+      { passive: true },
+    )
     .on('touchend', (event: any, d) => {
       createEventHandler('touchend', mouseEventOptions)(event, d)
     })
@@ -171,7 +203,6 @@ export const renderMap = (options: RenderMapOptions) => {
   return {
     dataMap,
     mapHeight,
-    cleanupEventListeners, // Return the cleanup function for event listeners
   }
 }
 
@@ -179,15 +210,15 @@ const initializeSvg = (options: InitializeSvgOptions) => {
   const { svgRef, width, height, isMobile } = options
   const { left, top } = MARGIN
 
-  const svg = d3
-    .select(svgRef.current)
-    .attr('width', width)
-    .attr('height', height)
+  const svg = select(svgRef.current).attr('width', width).attr('height', height)
 
   return {
     mapGroup: svg
       .append('g')
       .attr('class', 'map-container')
-      .attr('transform', `translate(${left}, ${isMobile ? top + 10 : top})`),
+      .attr(
+        'transform',
+        `translate(${left}, ${isMobile ? top + MOBILE_TOP_OFFSET : top})`,
+      ),
   }
 }

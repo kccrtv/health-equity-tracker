@@ -1,6 +1,7 @@
 import { Step, StepButton, Stepper } from '@mui/material'
-import { scrollIntoView } from 'seamless-scroll-polyfill'
 import { reportProviderSteps } from '../../reports/ReportProviderSteps'
+import { usePrefersReducedMotion } from '../../utils/hooks/usePrefersReducedMotion'
+import { scrollToHashTarget } from '../../utils/hooks/useScrollToHash'
 import {
   type ScrollableHashId,
   useStepObserver,
@@ -16,18 +17,11 @@ export default function TableOfContents(props: TableOfContentsProps) {
     props.reportStepHashIds,
     props.isScrolledToTop,
   )
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   function handleStepClick(stepId: ScrollableHashId) {
-    const clickedElem: HTMLElement | null = document.querySelector(`#${stepId}`)
-
-    if (clickedElem) {
-      scrollIntoView(clickedElem, { behavior: 'smooth' })
-      // for a11y focus should shift to subsequent tab goes to next interactive element after the targeted card
-      clickedElem.focus({ preventScroll: true })
-      // manually set the browser url#hash for actual clicks
-      window.history.replaceState(undefined, '', `#${stepId}`)
-    }
-
+    // same settling and focus behavior a deep link into this card would get
+    scrollToHashTarget(stepId, { smooth: !prefersReducedMotion })
     setRecentlyClicked(stepId)
   }
 
@@ -40,13 +34,14 @@ export default function TableOfContents(props: TableOfContentsProps) {
       }
       orientation='vertical'
       aria-label='Available cards on this report'
+      role='navigation'
       className='hidden p-0 titleSm:pl-1p sm:flex sm:w-90p md:px-5'
     >
       {props.reportStepHashIds?.map((stepId) => {
         return (
           <Step completed={false} key={stepId}>
             <StepButton
-              // title=
+              role='button'
               className='text-left'
               onClick={(e) => {
                 e.preventDefault()
@@ -55,7 +50,7 @@ export default function TableOfContents(props: TableOfContentsProps) {
             >
               <span
                 // hide labels visually but not from screen readers on small screens
-                className='sr-only text-smallest md:not-sr-only'
+                className='sr-only text-alt-dark text-smallest md:not-sr-only'
               >
                 {reportProviderSteps[stepId].label}
               </span>

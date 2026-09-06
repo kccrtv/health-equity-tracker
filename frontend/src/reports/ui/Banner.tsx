@@ -1,13 +1,14 @@
-import { Close } from '@mui/icons-material'
-import FlagIcon from '@mui/icons-material/Flag'
+import Close from '@mui/icons-material/Close'
 import { IconButton } from '@mui/material'
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import HetTextArrowLink from '../../styles/HetComponents/HetTextArrowLink'
+import { useIsBreakpointAndUp } from '../../utils/hooks/useIsBreakpointAndUp'
 import { METHODOLOGY_PAGE_LINK } from '../../utils/internalRoutes'
 
 const Banner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false)
+  const isMd = useIsBreakpointAndUp('md')
 
   useEffect(() => {
     const currentPath = window.location.pathname
@@ -36,15 +37,11 @@ const Banner: React.FC = () => {
 
   return (
     <section
-      className='bg-infobar-color p-4 text-center'
+      className='bg-infobar-color px-4 py-1 text-center md:p-4'
       aria-labelledby='banner-heading'
     >
       <div className='flex justify-between'>
         <div className='m-0 flex flex-wrap items-center justify-start px-2 md:items-center lg:flex-row lg:justify-start'>
-          <FlagIcon
-            className='mr-2 hidden text-alert-color lg:visible'
-            aria-hidden='true'
-          />
           <p
             className='my-0 p-0 text-left text-small lg:mr-8'
             id='banner-heading'
@@ -52,14 +49,23 @@ const Banner: React.FC = () => {
             <span className='m-0 p-0 font-bold font-sans-title text-small lg:text-text'>
               Major gaps in the data:
             </span>{' '}
-            Structural racism causes health inequities. We’re closing these gaps
-            to improve U.S. health policies.
+            <span className='md:hidden'>
+              Structural racism causes health inequities in the U.S.
+            </span>
+            <span className='hidden md:inline'>
+              Structural racism causes health inequities. We’re closing these
+              gaps to improve U.S. health policies.
+            </span>
           </p>
           <HetTextArrowLink
             link={`${METHODOLOGY_PAGE_LINK}/limitations#missing-data`}
-            linkText='Learn more about the data limitations'
-            containerClassName='block md:mx-2 md:my-0 mx-0 my-4'
-            linkClassName='text-black'
+            linkText={
+              isMd
+                ? 'Learn more about the data limitations'
+                : 'About data limitations'
+            }
+            containerClassName='block md:mx-2 md:my-0 mx-0 my-0'
+            linkClassName='text-alt-black'
           />
         </div>
         <IconButton

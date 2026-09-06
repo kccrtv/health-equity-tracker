@@ -1,4 +1,3 @@
-import { DataFrame } from 'data-forge'
 import CompareBubbleChart from '../charts/CompareBubbleChart'
 import type {
   DataTypeConfig,
@@ -10,11 +9,11 @@ import { Breakdowns, type DemographicType } from '../data/query/Breakdowns'
 import { MetricQuery } from '../data/query/MetricQuery'
 import { AIAN_API, NON_HISPANIC, UNKNOWN_RACE } from '../data/utils/Constants'
 import type { Fips } from '../data/utils/Fips'
-import { SHOW_CORRELATION_CARD } from '../featureFlags'
+import { flag } from '../featureFlags'
 import { useGuessPreloadHeight } from '../utils/hooks/useGuessPreloadHeight'
 import type { ScrollableHashId } from '../utils/hooks/useStepObserver'
 import CardWrapper from './CardWrapper'
-import ChartTitle from './ChartTitle'
+import ChartTitle, { getChartTitleId } from './ChartTitle'
 
 interface CompareBubbleChartCardProps {
   fips1: Fips
@@ -27,7 +26,7 @@ interface CompareBubbleChartCardProps {
   className?: string
 }
 
-const defaultClasses = 'shadow-raised bg-white'
+const defaultClasses = 'shadow-raised bg-alt-white'
 
 export default function CompareBubbleChartCard(
   props: CompareBubbleChartCardProps,
@@ -73,7 +72,8 @@ export default function CompareBubbleChartCard(
 
   let chartTitle = `Correlation between rates of ${props.rateConfig1?.chartTitle} and ${props.rateConfig2?.chartTitle} in ${props.fips1.getSentenceDisplayName()}`
 
-  if (SHOW_CORRELATION_CARD) chartTitle = 'PREVIEW MODE: ' + chartTitle
+  if (flag('VITE_SHOW_CORRELATION_CARD'))
+    chartTitle = 'PREVIEW MODE: ' + chartTitle
 
   return (
     <CardWrapper
@@ -107,40 +107,30 @@ export default function CompareBubbleChartCard(
 
         const dataPopRadius = rateQueryResponsePop.data
 
-        // Create DataFrames from your arrays
-        const df1 = new DataFrame(dataTopicX)
-        const df2 = new DataFrame(dataTopicY)
-        const dfPop = new DataFrame(dataPopRadius)
-
-        // Merge the DataFrames based on "fips" and "race_and_ethnicity"
-        const mergedXYData = df1.join(
-          df2,
-          (rowX) =>
+        const yIndex = new Map(
+          dataTopicY.map((row) => [
+            row.fips +
+              row.fips_name +
+              String(row[props.demographicType] ?? '').replace(' (NH)', ''),
+            row,
+          ]),
+        )
+        const mergedXY = dataTopicX.flatMap((rowX) => {
+          const key =
             rowX.fips +
             rowX.fips_name +
-            rowX.race_and_ethnicity?.replace(' (NH)', ''),
-          (rowY) =>
-            rowY.fips +
-            rowY.fips_name +
-            rowY.race_and_ethnicity?.replace(' (NH)', ''),
-          (leftRow, rightRow) => ({
-            ...leftRow, // Merge fields from df1
-            ...rightRow, // Merge fields from df2
-          }),
-        )
+            String(rowX[props.demographicType] ?? '').replace(' (NH)', '')
+          const rowY = yIndex.get(key)
+          return rowY ? [{ ...rowX, ...rowY }] : []
+        })
 
-        const mergedData = mergedXYData.join(
-          dfPop,
-          (row) => row.fips + row.fips_name,
-          (rowPop) => rowPop.fips + rowPop.fips_name,
-          (leftRow, rightRow) => ({
-            ...leftRow,
-            ...rightRow,
-          }),
+        const popIndex = new Map(
+          dataPopRadius.map((row) => [row.fips + row.fips_name, row]),
         )
-
-        // Convert the merged DataFrame back to an array of objects
-        const mergedArray = mergedData.toArray()
+        const mergedArray = mergedXY.flatMap((row) => {
+          const rowPop = popIndex.get(row.fips + row.fips_name)
+          return rowPop ? [{ ...row, ...rowPop }] : []
+        })
 
         const validXData = mergedArray.map((row) => ({
           fips: row.fips,
@@ -174,9 +164,16 @@ export default function CompareBubbleChartCard(
 
         return (
           <>
-            <ChartTitle title={chartTitle} subtitle={''} />
+            <ChartTitle
+              id={getChartTitleId('compare-bubble-chart' as ScrollableHashId)}
+              title={chartTitle}
+              subtitle={''}
+            />
 
             <CompareBubbleChart
+              chartTitleId={getChartTitleId(
+                'compare-bubble-chart' as ScrollableHashId,
+              )}
               xData={validXData}
               xMetricConfig={props.rateConfig1}
               yData={validYData}

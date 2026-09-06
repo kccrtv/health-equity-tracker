@@ -1,4 +1,4 @@
-import { HashLink } from 'react-router-hash-link'
+import { Link } from 'react-router'
 import { dataSourceMetadataMap } from '../../../data/config/MetadataMap'
 import { METRIC_CONFIG } from '../../../data/config/MetricConfig'
 import { MEDICARE_CATEGORY_DROPDOWNIDS } from '../../../data/config/MetricConfigPhrma'
@@ -61,13 +61,13 @@ export default function MedicareMedicationLink() {
         </p>
 
         <table className='m-4 border-collapse border-bg-color border-solid p-1'>
-          <thead className='bg-join-effort-bg1 font-bold'>
+          <thead className='bg-methodology-green font-bold'>
             <tr>
               <th>Field from data dictionary</th>
               <th>Description</th>
             </tr>
           </thead>
-          <tbody className='even:bg-explore-bg-color'>
+          <tbody className='[&>tr:nth-child(even)]:bg-methodology-green/20'>
             <tr>
               <td className='border-collapse border-bg-color border-solid p-1'>
                 <>RTI_RACE_CD</>
@@ -317,13 +317,13 @@ export default function MedicareMedicationLink() {
               </li>
               <li>
                 <i>Unknown</i> we represent on our{' '}
-                <HashLink
+                <Link
                   to={
                     '/exploredata?mls=1.medicare_cardiovascular-3.00&group1=All&demo=race_and_ethnicity#unknown-demographic-map'
                   }
                 >
                   Unknown Demographic Map
-                </HashLink>
+                </Link>
               </li>
             </ul>
 

@@ -7,10 +7,9 @@ on:
       # Run only if data pipeline services or the frontend/ changes
       - 'config/**'
       - 'data/**'
-      - 'data_server/**'
-      - 'e2e_tests/**'
+      - 'server/**'
+      - 'server_smoke_tests/**'
       - 'exporter/**'
-      - 'frontend_server/**'
       - 'python/**'
       - 'requirements/**'
       - 'run_gcs_to_bq/**'
@@ -25,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
 
@@ -34,8 +33,7 @@ jobs:
         with:
           ref: main
           environment: dev
-          deployer-sa-key: ${{ secrets.TEST_DEPLOYER_SA_KEY }}
+          deployer-sa-key: ${{ secrets.DEPLOYER_SA_KEY }}
           project-id: ${{ secrets.TEST_PROJECT_ID }}
           tf-state-bucket: ${{ secrets.TEST_TF_STATE_BUCKET }}
-          ahr-api-key: ${{ secrets.AHR_API_KEY }}
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}

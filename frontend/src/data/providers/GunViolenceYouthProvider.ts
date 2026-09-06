@@ -20,6 +20,7 @@ const GUN_DEATHS_CHILDREN_METRIC_IDS: MetricId[] = [
   'gun_deaths_youth_pct_relative_inequity',
   'gun_deaths_youth_pct_share',
   'gun_deaths_youth_per_100k',
+  'gun_deaths_youth_per_100k_is_suppressed',
   'gun_deaths_youth_population',
   'gun_deaths_youth_population_pct',
 ]
@@ -29,6 +30,7 @@ const GUN_DEATHS_YOUNG_ADULTS_METRIC_IDS: MetricId[] = [
   'gun_deaths_young_adults_pct_relative_inequity',
   'gun_deaths_young_adults_pct_share',
   'gun_deaths_young_adults_per_100k',
+  'gun_deaths_young_adults_per_100k_is_suppressed',
   'gun_deaths_young_adults_population',
   'gun_deaths_young_adults_population_pct',
 ]
@@ -63,7 +65,7 @@ class GunViolenceYouthProvider extends VariableProvider {
       }
 
       const gunViolenceYouthData = await getDataManager().loadDataset(datasetId)
-      let df = gunViolenceYouthData.toDataFrame()
+      let df = gunViolenceYouthData.rows
 
       df = this.filterByGeo(df, breakdowns)
       df = this.renameGeoColumns(df, breakdowns)
@@ -71,11 +73,16 @@ class GunViolenceYouthProvider extends VariableProvider {
         df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
       } else {
         df = this.applyDemographicBreakdownFilters(df, breakdowns)
-        df = this.removeUnrequestedColumns(df, metricQuery)
       }
+      df = this.removeUnrequestedColumns(df, metricQuery)
 
       const consumedDatasetIds = [datasetId]
-      return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+      return new MetricQueryResponse(
+        df,
+        consumedDatasetIds,
+        undefined,
+        !!isFallbackId,
+      )
     } catch (error) {
       console.error('Error fetching gun deaths of youth data:', error)
       throw error

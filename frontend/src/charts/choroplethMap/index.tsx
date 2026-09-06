@@ -1,12 +1,17 @@
-import * as d3 from 'd3'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { select } from 'd3'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { CAWP_METRICS } from '../../data/providers/CawpProvider'
 import { PHRMA_METRICS } from '../../data/providers/PhrmaProvider'
+import { DEMOGRAPHIC_DISPLAY_TYPES_LOWER_CASE } from '../../data/query/Breakdowns'
 import { useIsBreakpointAndUp } from '../../utils/hooks/useIsBreakpointAndUp'
 import { useResponsiveWidth } from '../../utils/hooks/useResponsiveWidth'
+import { HetChartHoverTooltip } from '../HetChartHoverTooltip'
 import { INVISIBLE_PRELOAD_WIDTH } from '../mapGlobals'
 import { embedHighestLowestGroups, getCountyAddOn } from '../mapHelperFunctions'
+import { useChartTooltip } from '../useChartTooltip'
 import { HEIGHT_WIDTH_RATIO } from '../utils'
+import { getMapA11ySummary } from './a11yUtils'
+import { MapTooltipContent } from './MapTooltipContent'
 import {
   createFeatures,
   createProjection,
@@ -14,8 +19,7 @@ import {
 } from './mapHelpers'
 import { renderMap } from './renderMap'
 import TerritoryCircles from './TerritoryCircles'
-import { createTooltipContainer } from './tooltipUtils'
-import type { ChoroplethMapProps, DataPoint } from './types'
+import type { ChoroplethMapProps, DataPoint, MapTooltipData } from './types'
 
 const ChoroplethMap = ({
   data,
@@ -38,16 +42,21 @@ const ChoroplethMap = ({
   isSummaryLegend,
   updateFipsCallback,
   colorScale,
-  allMissingDataIsSuppressed,
 }: ChoroplethMapProps) => {
   const isMobile = !useIsBreakpointAndUp('md')
   const [ref, width] = useResponsiveWidth()
   const svgRef = useRef<SVGSVGElement | null>(null)
-  const tooltipContainerRef = useRef<ReturnType<
-    typeof createTooltipContainer
-  > | null>(null)
+  const isCoarsePointer =
+    window.matchMedia?.('(pointer: coarse)').matches ?? false
   const mapInitializedRef = useRef(false)
-  const eventCleanupRef = useRef<(() => void) | null>(null)
+
+  const {
+    tooltipData: mapTooltipData,
+    tooltipPos: mapTooltipPos,
+    showTooltip,
+    hideTooltip,
+    hideTooltipDelayed,
+  } = useChartTooltip<MapTooltipData>()
 
   // State to store the dataMap created during map rendering
   const [renderResult, setRenderResult] = useState<{
@@ -71,6 +80,19 @@ const ChoroplethMap = ({
     [suppressedData, highestLowestGroupsByFips, isUnknownsMap, isMulti],
   )
 
+  const a11ySummaryId = useId()
+  const a11ySummary = useMemo(
+    () =>
+      getMapA11ySummary(
+        dataWithHighestLowest,
+        metricConfig,
+        fips,
+        isUnknownsMap,
+        DEMOGRAPHIC_DISPLAY_TYPES_LOWER_CASE[demographicType],
+      ),
+    [dataWithHighestLowest, metricConfig, fips, isUnknownsMap, demographicType],
+  )
+
   const dimensions = useMemo(() => {
     const heightWidthRatio = HEIGHT_WIDTH_RATIO
     return {
@@ -79,22 +101,32 @@ const ChoroplethMap = ({
     }
   }, [width])
 
-  const cleanup = () => {
-    // Clean up event listeners if they exist
-    if (eventCleanupRef.current) {
-      eventCleanupRef.current()
-      eventCleanupRef.current = null
+  // scroll+wheel are handled by useChartTooltip; click-outside and touchmove are map-specific.
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as Element | null
+      if (
+        svgRef.current &&
+        !svgRef.current.contains(target) &&
+        !target?.closest('[role="tooltip"]')
+      ) {
+        hideTooltip()
+      }
     }
+    window.addEventListener('click', handleOutsideClick)
+    window.addEventListener('touchmove', hideTooltip, { passive: true })
+    return () => {
+      window.removeEventListener('click', handleOutsideClick)
+      window.removeEventListener('touchmove', hideTooltip)
+    }
+  }, [hideTooltip])
 
-    // Clean up tooltip
-    if (tooltipContainerRef.current) {
-      tooltipContainerRef.current.remove()
-      tooltipContainerRef.current = null
-    }
+  const cleanup = () => {
+    hideTooltip()
 
     // Clean up SVG
     if (svgRef.current) {
-      const svg = d3.select(svgRef.current)
+      const svg = select(svgRef.current)
       svg.selectAll('*').remove()
       svg.on('.', null)
     }
@@ -112,8 +144,6 @@ const ChoroplethMap = ({
       if (mapInitializedRef.current) {
         return
       }
-
-      tooltipContainerRef.current ??= createTooltipContainer(isMulti)
 
       const features = await createFeatures(
         showCounties,
@@ -136,7 +166,8 @@ const ChoroplethMap = ({
         metricConfig,
         width,
         height: isMulti ? dimensions.height + 100 : dimensions.height,
-        tooltipContainer: tooltipContainerRef.current!,
+        showTooltip,
+        hideTooltip: hideTooltipDelayed,
         showCounties,
         colorScale,
         fips,
@@ -152,13 +183,7 @@ const ChoroplethMap = ({
         isMulti,
         isSummaryLegend,
         updateFipsCallback,
-        allMissingDataIsSuppressed: allMissingDataIsSuppressed || false,
       })
-
-      // Store the event cleanup function
-      if (result.cleanupEventListeners) {
-        eventCleanupRef.current = result.cleanupEventListeners
-      }
 
       setRenderResult({
         dataMap: result.dataMap,
@@ -200,10 +225,14 @@ const ChoroplethMap = ({
       className={`mx-2 justify-center ${width === INVISIBLE_PRELOAD_WIDTH ? 'hidden' : 'block'}`}
       ref={ref}
     >
+      <p id={a11ySummaryId} className='sr-only'>
+        {a11ySummary}
+      </p>
       <svg
         ref={svgRef}
         style={{ width: '100%' }}
         aria-label={`Map showing ${filename}`}
+        aria-describedby={a11ySummaryId}
       />
 
       {renderResult && fips.isUsa() && (
@@ -216,7 +245,8 @@ const ChoroplethMap = ({
           colorScale={colorScale}
           metricConfig={metricConfig}
           dataMap={renderResult.dataMap}
-          tooltipContainer={tooltipContainerRef.current}
+          showTooltip={showTooltip}
+          hideTooltip={hideTooltipDelayed}
           geographyType={getCountyAddOn(fips, showCounties)}
           isExtremesMode={isExtremesMode}
           mapConfig={mapConfig}
@@ -228,6 +258,21 @@ const ChoroplethMap = ({
           updateFipsCallback={updateFipsCallback}
         />
       )}
+
+      <HetChartHoverTooltip
+        x={mapTooltipData && mapTooltipPos ? mapTooltipPos.x : null}
+        y={mapTooltipData && mapTooltipPos ? mapTooltipPos.y : null}
+        interactive={isCoarsePointer}
+        inModal={isMulti}
+      >
+        {mapTooltipData && (
+          <MapTooltipContent
+            data={mapTooltipData}
+            onExplore={updateFipsCallback}
+            isTouch={isCoarsePointer}
+          />
+        )}
+      </HetChartHoverTooltip>
     </div>
   )
 }

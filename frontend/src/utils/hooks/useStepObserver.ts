@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { getDefaultStore } from 'jotai'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
-import { scrollIntoView } from 'seamless-scroll-polyfill'
+import { activeHashIdAtom } from '../sharedSettingsState'
+import { useScrollToHash } from './useScrollToHash'
 
 export type ScrollableHashId =
   | 'rate-map'
@@ -18,49 +20,58 @@ export function useStepObserver(
   stepIds: ScrollableHashId[],
   isScrolledToTop: boolean,
 ) {
-  const location: any = useLocation()
+  const location = useLocation()
 
   const observer = useRef<IntersectionObserver | null>(null)
   const [activeId, setActiveId] = useState('')
   const [recentlyClicked, setRecentlyClicked] =
     useState<ScrollableHashId | null>(null)
 
-  function handleInteraction() {
-    // any time the user interacts, cancel pending automated scrolling and erase any incoming #hash from the URL
+  const handleInteraction = useCallback(() => {
     setRecentlyClicked(null)
-    location.hash = ''
-  }
+  }, [])
 
   useEffect(() => {
-    // if user scrolls or clicks, go back to tracking scroll position in the table of contents
-    function watchScroll() {
-      window.addEventListener('wheel', handleInteraction)
-      window.addEventListener('pointerdown', handleInteraction)
-      window.addEventListener('keydown', handleInteraction)
-    }
-    watchScroll()
+    window.addEventListener('wheel', handleInteraction, { passive: true })
+    window.addEventListener('pointerdown', handleInteraction)
+    window.addEventListener('keydown', handleInteraction)
     return () => {
       window.removeEventListener('wheel', handleInteraction)
       window.removeEventListener('pointerdown', handleInteraction)
       window.removeEventListener('keydown', handleInteraction)
     }
-  })
+  }, [handleInteraction])
 
   useEffect(() => {
+    const store = getDefaultStore()
+
     const handleObserver = (entries: any) => {
       entries.forEach((entry: any) => {
         // when page is scrolled to the top, don't track scroll position and remove any hash
         if (isScrolledToTop) {
           setActiveId('')
-          window.history.replaceState(
-            '',
-            document.title,
-            window.location.pathname + window.location.search,
-          )
+          if (window.location.hash) {
+            window.history.replaceState(
+              '',
+              document.title,
+              window.location.pathname + window.location.search,
+            )
+            store.set(activeHashIdAtom, null)
+          }
         } else if (entry?.isIntersecting) {
           // prefer a recently clicked id, otherwise set to the observed "in view" id
           const preferredId = recentlyClicked ?? entry.target.id
           setActiveId(preferredId)
+          // Passive scroll-spy: keep the URL hash in sync with the visible section
+          // so copying the URL after scrolling still deep-links to the right card.
+          // Only fires when the user is scrolling freely (not during a programmatic
+          // settle triggered by a click or deep link).
+          if (!recentlyClicked && preferredId) {
+            if (window.location.hash !== `#${preferredId}`) {
+              window.history.replaceState(undefined, '', `#${preferredId}`)
+            }
+            store.set(activeHashIdAtom, preferredId)
+          }
         }
       })
     }
@@ -80,50 +91,21 @@ export function useStepObserver(
     return () => observer.current?.disconnect()
   }, [stepIds, recentlyClicked, isScrolledToTop])
 
-  const urlHashOverrideRef = useRef(recentlyClicked)
-
-  useEffect(() => {
-    // any updates to the focused id updates the ref
-    urlHashOverrideRef.current = recentlyClicked
-  }, [activeId, recentlyClicked])
-
   const hashLink = location?.hash
   const hashId = hashLink.substring(1) || ''
+  const isScrollableHashId = (id: string): id is ScrollableHashId =>
+    (stepIds as string[]).includes(id)
+  const isKnownStep = Boolean(hashLink) && isScrollableHashId(hashId)
 
   useEffect(() => {
-    // updates to the URL or available stepIds results in recalculated focus for the Table of Contents
-
-    if (hashLink && stepIds.includes(hashId)) {
+    if (isKnownStep && isScrollableHashId(hashId)) {
       setActiveId(hashId)
       setRecentlyClicked(hashId)
+      getDefaultStore().set(activeHashIdAtom, hashId)
     }
   }, [location?.hash, stepIds])
 
-  useEffect(() => {
-    //  on render, set up a timer to auto scroll user to the focused card (counteracting layout shift from loading/resizing cards)
-    // timer is stopped when the urlHashOverrideRef is reset, which is caused by a user interaction like scrolling, swiping, or key presses
-    if (hashLink && stepIds.includes(hashId)) {
-      let pulseIdCounter = 0
-
-      const pulseId = setInterval(() => {
-        // clear the auto-scroll regardless of user interaction after set time
-        pulseIdCounter += 500
-        if (pulseIdCounter > 500 * 2 * 30) clearInterval(pulseId)
-        if (urlHashOverrideRef.current === hashId) {
-          const targetElem = document.querySelector(`#${hashId as string}`)
-          if (targetElem) {
-            scrollIntoView(targetElem, {
-              behavior: 'smooth',
-            })
-          }
-        }
-      }, 500)
-
-      return () => {
-        clearInterval(pulseId)
-      }
-    }
-  }, [hashId, hashLink, stepIds])
+  useScrollToHash(isKnownStep ? hashId : null)
 
   return [activeId, setRecentlyClicked] as const
 }

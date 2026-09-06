@@ -26,7 +26,6 @@ The text contains the words `National Data`
 """
 
 CHR_DIR = "chr"
-
 CHR_FILE_LOOKUP = {
     "2011": "2011 County Health Rankings National Data_v2_0.xls",
     "2012": "2012 County Health Rankings National Data_v2_0.xls",
@@ -42,7 +41,7 @@ CHR_FILE_LOOKUP = {
     "2022": "2022 County Health Rankings Data - v1.xlsx",
     "2023": "2023 County Health Rankings Data - v2.xlsx",
     "2024": "2024_county_health_release_data_-_v1.xlsx",
-    "2025": "2025 County Health Rankings Data - v3.xlsx",
+    "2025": "2025 County Health Rankings Data - v4.xlsx",
 }
 
 source_fips_col = "FIPS"
@@ -300,7 +299,6 @@ def convert_some_pct_rate_to_100k(df: pd.DataFrame, float_cols: List[str]) -> Tu
     """
 
     cols_conversion_map = {
-        "excessive_drinking_pct_rate": "excessive_drinking_per_100k",
         "frequent_mental_distress_pct_rate": "frequent_mental_distress_per_100k",
         "diabetes_pct_rate": "diabetes_per_100k",
     }

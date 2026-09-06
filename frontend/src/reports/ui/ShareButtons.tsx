@@ -1,24 +1,20 @@
 import { Tooltip } from '@mui/material'
+import { colors } from '../../styles/tokens/colors'
 import {
   EmailIcon,
-  EmailShareButton,
+  emailShareUrl,
   FacebookIcon,
-  FacebookShareButton,
+  facebookShareUrl,
   LinkedinIcon,
-  LinkedinShareButton,
-  TwitterShareButton,
-  XIcon,
-} from 'react-share'
-import type { Article } from '../../pages/News/ArticleTypes'
-import { het } from '../../styles/DesignTokens'
-import { getHtml } from '../../utils/urlutils'
+  linkedinShareUrl,
+  openShareWindow,
+} from '../../utils/socialShare'
 
 export const SHARE_LABEL = 'Share this report:'
 
 interface ShareButtonProps {
   isMobile: boolean
   reportTitle?: string
-  article?: Article
 }
 
 export default function ShareButtons(props: ShareButtonProps) {
@@ -27,18 +23,17 @@ export default function ShareButtons(props: ShareButtonProps) {
   if (props.reportTitle) {
     title += ': ' + props.reportTitle
   }
-  if (props.article) {
-    const htmlTitle = getHtml(props.article.title.rendered, true)
-    if (typeof htmlTitle === 'string') {
-      title += ': “' + htmlTitle + '”'
-    }
-  }
 
-  const shareIconAttributes = {
-    iconFillColor: het.altDark,
-    bgStyle: { fill: 'none' },
-    size: props.isMobile ? 64 : 32,
-  }
+  const iconSize = props.isMobile ? 40 : 32
+  const iconFillColor = colors.altDark
+
+  const fbHref = facebookShareUrl(sharedUrl)
+  const liHref = linkedinShareUrl(sharedUrl)
+  const emailHref = emailShareUrl(
+    sharedUrl,
+    'Sharing from healthequitytracker.org',
+    `${title}\n\n`,
+  )
 
   return (
     <div
@@ -46,51 +41,41 @@ export default function ShareButtons(props: ShareButtonProps) {
         props.reportTitle ? 'justify-center' : 'justify-start'
       }`}
     >
-      <div>
-        {/* SOCIAL SHARE BUTTONS */}
-
-        <Tooltip title='Tweet this page'>
-          <TwitterShareButton
-            url={sharedUrl}
-            hashtags={['healthequity']}
-            related={['@SatcherHealth', '@MSMEDU']}
-            aria-label={'Share to X (formerly Twitter)'}
-          >
-            <XIcon {...shareIconAttributes} fontSize={'small'} />
-          </TwitterShareButton>
-        </Tooltip>
-
+      <div className='flex items-center gap-4'>
         <Tooltip title='Post this page to Facebook'>
-          <FacebookShareButton
-            url={sharedUrl}
-            hashtag={'#healthequity'}
-            aria-label={'Post this page to Facebook'}
+          <a
+            href={fbHref}
+            target='_blank'
+            rel='noopener noreferrer'
+            aria-label='Post this page to Facebook'
+            onClick={(e) => {
+              e.preventDefault()
+              openShareWindow(fbHref)
+            }}
           >
-            <FacebookIcon {...shareIconAttributes} />
-          </FacebookShareButton>
+            <FacebookIcon size={iconSize} iconFillColor={iconFillColor} />
+          </a>
         </Tooltip>
 
         <Tooltip title='Post this page to LinkedIn'>
-          <LinkedinShareButton
-            source={'Health Equity Tracker'}
-            url={sharedUrl}
-            aria-label={'Share to LinkedIn'}
+          <a
+            href={liHref}
+            target='_blank'
+            rel='noopener noreferrer'
+            aria-label='Share to LinkedIn'
+            onClick={(e) => {
+              e.preventDefault()
+              openShareWindow(liHref)
+            }}
           >
-            <LinkedinIcon {...shareIconAttributes} />
-          </LinkedinShareButton>
+            <LinkedinIcon size={iconSize} iconFillColor={iconFillColor} />
+          </a>
         </Tooltip>
 
         <Tooltip title='Share this page by email'>
-          <EmailShareButton
-            aria-label={'Share by email'}
-            subject={`Sharing from healthequitytracker.org`}
-            body={`${title}
-
-`} // KEEP THIS WEIRD SPACING FOR EMAIL LINE BREAKS!
-            url={sharedUrl}
-          >
-            <EmailIcon {...shareIconAttributes} />
-          </EmailShareButton>
+          <a href={emailHref} aria-label='Share by email'>
+            <EmailIcon size={iconSize} iconFillColor={iconFillColor} />
+          </a>
         </Tooltip>
       </div>
     </div>

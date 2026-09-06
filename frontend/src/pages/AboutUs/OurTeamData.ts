@@ -1,22 +1,21 @@
 import GrantorElevenLabs from '../../assets/grantors/elevenlabs-logo-black-compressed.png'
-import GrantorPhrma from '../../assets/grantors/GrantorPhrma.png'
+import GrantorPhrma from '../../assets/grantors/GrantorPhrma.webp'
 import PartnerAARP from '../../assets/partners/PartnerAARP.png'
 import PartnerAECF from '../../assets/partners/PartnerAECF.jpg'
 import PartnerCdc from '../../assets/partners/PartnerCdc.png'
 import PartnerGilead from '../../assets/partners/PartnerGilead.png'
 import PartnerGoogle from '../../assets/partners/PartnerGoogle.png'
 import PartnerSatcher from '../../assets/partners/PartnerSatcher.png'
-import Allyson from '../../assets/team/BeltonA.png'
-import Kim from '../../assets/team/CincoK.png'
-import Megan from '../../assets/team/DouglasMegan.jpg'
-import Ben from '../../assets/team/HammondBen.jpg'
-import Jammie from '../../assets/team/HopkinsJammie.jpg'
-import Evan from '../../assets/team/MartinE.jpg'
-import Donrie from '../../assets/team/PurcellDonrie.png'
-import DrHH from '../../assets/team/SHarris-Hooker.jpg'
-import Shaneeta from '../../assets/team/ShaneetaJohnson.png'
-import Maisha from '../../assets/team/StandiferM.png'
-import Eric from '../../assets/team/WarrenE.png'
+import Allyson from '../../assets/team/BeltonA.webp'
+import Kim from '../../assets/team/CincoK.webp'
+import Megan from '../../assets/team/DouglasMegan.webp'
+import Ben from '../../assets/team/HammondBen.webp'
+import Jammie from '../../assets/team/HopkinsJammie.webp'
+import Evan from '../../assets/team/MartinE.webp'
+import DrHH from '../../assets/team/SHarris-Hooker.webp'
+import Shaneeta from '../../assets/team/ShaneetaJohnson.webp'
+import Maisha from '../../assets/team/StandiferM.webp'
+import Eric from '../../assets/team/WarrenE.webp'
 
 export const LEADERSHIP_TEAM = [
   {
@@ -43,11 +42,6 @@ export const LEADERSHIP_TEAM = [
     name: 'Allyson Belton, MPH',
     role: 'Coalition/Engagement',
     imageUrl: Allyson,
-  },
-  {
-    name: 'Donrie Purcell, PhD, MPH',
-    role: 'Senior Health Systems Data Analyst',
-    imageUrl: Donrie,
   },
   {
     name: 'Maisha Standifer, PhD, MPH',
@@ -136,6 +130,10 @@ export const HET_ALUMNI = [
     name: 'Jareese Stroud, MPH',
     role: 'Researcher',
   },
+  {
+    name: 'Donrie Purcell, PhD, MPH',
+    role: 'Senior Health Systems Data Analyst',
+  },
 ]
 export const GOOGLE_FELLOWS = [
   {
@@ -165,7 +163,7 @@ export const GOOGLE_FELLOWS = [
   {
     name: 'Ken Moore',
     role: 'UX Designer',
-    link: 'https://kenstatus.com',
+    link: 'https://web.archive.org/web/20220401002736/https://kenstatus.com/',
     text: 'In memoriam,',
   },
   {

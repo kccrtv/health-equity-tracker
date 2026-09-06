@@ -6,6 +6,7 @@ Codebase for the [Health Equity Tracker](https://healthequitytracker.org/), Satc
 
 [![Run Playwright E2E Nightly Against PROD](https://github.com/SatcherInstitute/health-equity-tracker/actions/workflows/e2eScheduled.yml/badge.svg)](https://github.com/SatcherInstitute/health-equity-tracker/actions/workflows/e2eScheduled.yml)
 [![Check Outgoing Links](https://github.com/SatcherInstitute/health-equity-tracker/actions/workflows/cronUrlChecker.yml/badge.svg)](https://github.com/SatcherInstitute/health-equity-tracker/actions/workflows/cronUrlChecker.yml)
+[![Review Flagged AI Insights](https://github.com/SatcherInstitute/health-equity-tracker/actions/workflows/cronReviewFlaggedInsights.yml/badge.svg)](https://github.com/SatcherInstitute/health-equity-tracker/actions/workflows/cronReviewFlaggedInsights.yml)
 
 ## Frontend Quick-Start
 
@@ -119,7 +120,7 @@ Note: If you are using VSCode or one of its forks, ensure you install the recomm
 1. While still in the `health-equity-tracker/frontend/` folder, run
 
    ```bash
-   npm run local
+   npm run localhost
    ```
 
 2. In your browser, visit <http://localhost:3000>
@@ -148,6 +149,16 @@ Note: If you are using VSCode or one of its forks, ensure you install the recomm
   - `npm run e2e statins.nightly.spec.ts` runs the single file
   - `npm run e2e hiv` runs all tests that include the string `hiv` in the filename
 - To run the tests locally, but target either the production or dev-site deployments instead of localhost: `npm run e2e-prod` and `npm run e2e-dev` respectively. Target specific test files the same way described above.
+
+## How We Track Work
+
+We use GitHub's built-in tools as a progression from idea to prioritized work:
+
+- **[Discussions](https://github.com/SatcherInstitute/health-equity-tracker/discussions)** — unformed ideas. Use these to propose a feature, debate whether we should do it, and refine what it would actually look like.
+- **[Issues](https://github.com/SatcherInstitute/health-equity-tracker/issues)** — concrete pieces of work. By the time something is an issue, the problem (or feature) and the intended solution are basically known; only the timeline is open.
+- **[Milestones](https://github.com/SatcherInstitute/health-equity-tracker/milestones)** — groups of related issues that form a major, prioritized team push.
+
+New ideas start as discussions and get promoted to issues once refined; don't skip stages. If you're unsure where your idea fits, open a discussion.
 
 ## Making a Pull Request (PR)
 
@@ -255,9 +266,75 @@ Everything below is more detailed, advanced info that you probably won't need ri
 
 The frontend consists of
 
-1. `health-equity-tracker/frontend/`: A React app that contains all code and static resources needed in the browser (html, TS, CSS, images). This app was bootstrapped with [Create React App](https://github.com/facebook/create-react-app) and later migrated to Vite.
-2. `health-equity-tracker/frontend_server/`: A lightweight server that serves the React app as static files and forwards data requests to the data server.
-3. `health-equity-tracker/data_server/`: A data server that responds to data requests by serving data files that have been exported from the data pipeline.
+1. `health-equity-tracker/frontend/`: A React app that contains all code and static resources needed in the browser (html, TS, CSS, images). Built with [Vite 8](https://vite.dev/) (Rolldown-powered) and tested with [Vitest 4](https://vitest.dev/).
+2. `health-equity-tracker/server/`: A combined Go server that is the live serving path for both dev and prod. It serves the React app's static files and responds to data requests with files exported from the data pipeline, in a single binary.
+
+### Frontend Design System & Theme Architecture
+
+Design tokens are defined once in [W3C DTCG](https://design-tokens.github.io/community-group/format/) JSON and generated into all downstream consumers by [Terrazzo](https://terrazzo.app/). This keeps Tailwind v4, MUI v9, and D3.js in sync from a single source of truth with full IntelliSense and no style drift.
+
+#### The Token Pipeline
+
+```mermaid
+flowchart TD
+    %% Source Layer
+    subgraph Source["Source (edit these)"]
+        CT["<code>tokens/colors.tokens.json</code><br/><i>Hex color values</i>"]
+        TT["<code>tokens/typography.tokens.json</code><br/><i>Fonts &amp; sizes</i>"]
+        DT["<code>tokens/dimensions.tokens.json</code><br/><i>Spacing, breakpoints, z-index…</i>"]
+    end
+
+    %% Build Step
+    BUILD["<code>npm run tokens</code><br/><i>Terrazzo — auto-runs on install, predev, prebuild</i>"]
+
+    %% Generated Layer
+    subgraph Generated["Generated — src/styles/tokens/ (DO NOT EDIT, gitignored)"]
+        COLORS_TS["<code>colors.ts</code><br/><i>colors { altGreen: '#0b5240', … }</i>"]
+        COLORS_CSS["<code>colors.css</code><br/><i>@theme block</i>"]
+        TYPO_TS["<code>typography.ts</code><br/><i>typography { fontSansText: '…', … }</i>"]
+        TYPO_CSS["<code>typography.css</code><br/><i>@theme block</i>"]
+        DIM_TS["<code>dimensions.ts</code><br/><i>dimensions + breakpoints</i>"]
+        DIM_CSS["<code>dimensions.css</code><br/><i>@theme block</i>"]
+    end
+
+    %% Consumption Layer
+    subgraph Consumption
+        MUI_T["<code>muiTheme.tsx</code><br/><i>colors, typography, dimensions</i>"]
+        TW["Tailwind Classes<br/><i>bg-alt-green, font-sans-text…</i>"]
+        APP["App Code<br/><i>SVG, D3, React styles</i>"]
+    end
+
+    CT --> BUILD
+    TT --> BUILD
+    DT --> BUILD
+    BUILD --> COLORS_TS & COLORS_CSS & TYPO_TS & TYPO_CSS & DIM_TS & DIM_CSS
+
+    COLORS_TS & TYPO_TS & DIM_TS -->|"raw values"| MUI_T
+    COLORS_TS & DIM_TS -->|"raw values"| APP
+    COLORS_CSS & TYPO_CSS & DIM_CSS -->|"@theme → CSS vars"| TW
+    TW -->|"utility classes"| APP
+```
+
+#### Token API
+
+All tokens are plain values — no CSS var wrappers in application code:
+
+```ts
+import { colors }                  from '../../styles/tokens/colors'
+import { typography }              from '../../styles/tokens/typography'
+import { dimensions, breakpoints } from '../../styles/tokens/dimensions'
+
+colors.altGreen          // '#0b5240'
+typography.fontSansText  // "'Inter Variable', sans-serif"
+dimensions.radiusSm      // '4px'
+breakpoints.sm           // '600px'  ← short keys for useIsBreakpointAndUp
+```
+
+CSS vars are a Tailwind implementation detail. The `@theme` blocks register tokens so utility classes (`bg-alt-green`, `font-sans-text`, `rounded-sm`, `sm:`) work. App code never references `var(--color-*)` directly.
+
+- **To add or change a token:** edit `tokens/*.tokens.json` and run `npm run tokens`.
+- **Styling priority:** Tailwind utility classes first; import from `src/styles/tokens/` for inline/computed styles.
+- **MUI theme:** `muiTheme.tsx` imports `colors`, `typography`, and `dimensions` directly.
 
 ### Frontend Environment Configuration
 
@@ -267,10 +344,10 @@ The frontend uses multiple environments to assist with development, testing, and
 
 | Environment | .env File | Frontend Deployment | Backend GCP Project | Description |
 |-------------|-----------|---------------------|---------------------|-------------|
-| Local Development | `.env.local` (create from template) | Local machine's <http://localhost:3000> | het-infra-test | For developer workstations. |
+| Local Development | `.env.localhost` | Local machine's <http://localhost:3000> | het-infra-test | For developer workstations. |
 | PR Preview | `.env.deploy_preview` | Netlify PR Preview; URL in GitHub PR comment | het-infra-test | Temporary deployments for pull request reviews. |
 | Development | `.env.dev` | dev.healthequitytracker.org | het-infra-test | Stable environment for testing features before production. |
-| Production | `.env.production` | healthequitytracker.org | het-infra-prod | Live environment for end users. |
+| Production | `.env.prod` | healthequitytracker.org | het-infra-prod | Live environment for end users. |
 
 **IMPORTANT!** All of these `.env` files are checked in to git, meaning that we **DO NOT store secret information** such as API keys, passwords, or other sensitive data in these files.
 
@@ -298,7 +375,7 @@ The backend consists of:
 - `health-equity-tracker/.github/workflows/`: Workflow code that controls the DAGs which orchestrate the execution of these various microservices via GitHub Actions
 - `health-equity-tracker/config/`: Terraform configuration for setting permissions and provisioning needed resources for cloud computing
 - `health-equity-tracker/data/`: In code-base "bucket" used to store manually downloaded data from outside sources where it isn't possible to fetch new data directly via and API endpoint or linkable file URL
-- `health-equity-tracker/e2e_tests/`: Automated tests ensuring all services work together as expected; not to be confused with the Playwright E2E tests found in `/frontend`
+- `health-equity-tracker/server_smoke_tests/`: Post-deploy smoke tests that hit the live combined Go `server` GCP service to verify it is responding correctly
 - `health-equity-tracker/exporter/`: Code for the microservice responsible for taking HET-style data from HET BigQuery tables and storing them in buckets as .json files. NOTE: County-level files are broken up by state when exporting.
 - `health-equity-tracker/python/`: Code for the Python modules responsible for fetching data from outside sources and wrangling into a HET-style table with rows for every combination of demographic group, geographic area, and optionally time period, and columns for each measured metric
 - `health-equity-tracker/requirements/`: Packages required for the HET
@@ -343,7 +420,7 @@ To install, ensure your venv is activated, and run: `pip install pytest`
 To run pytest against your entire, updated backend code:
 
 ```bash
-pip install python/data_server/ python/datasources/ python/ingestion/ && pytest python/tests/
+pip install python/datasources/ python/ingestion/ && pytest python/tests/
 ```
 
 To run single test file follow this pattern (the `-s` flag enables `print()` statements to log even on passing tests):
@@ -351,6 +428,10 @@ To run single test file follow this pattern (the `-s` flag enables `print()` sta
 ```bash
 pip install python/datasources/ && pytest python/tests/datasources/test_cdc_hiv.py -s
 ```
+
+#### Regenerating golden files
+
+Many datasource tests compare output against a committed "golden" file. When a change legitimately alters that output, regenerate rather than hand-edit: uncomment the `to_csv` line above the assertion, run the test, then re-comment it before committing. If the test has no such line, copy one from a neighboring test file (`test_cawp.py`, `test_chr.py`) and adjust the variables. A few goldens are `.json` and need `to_json(path, orient="records")` instead. Always review the resulting diff, since regeneration records whatever the code currently emits.
 
 ## HET Microservice Architecture
 
@@ -363,45 +444,6 @@ Much of the guidance in this readme is aimed towards ongoing development of the 
 The following section is not required for regular maintenance of the Health Equity Tracker, but can be extremely helpful for local development and cloud deployment of similar, forked projects.
 
 <details><summary>Expand advanced configuration details</summary>
-
-## Advanced Frontend Configuration
-
-### Running the Frontend Server locally
-
-#### If you need to run the frontend server locally to test server-side changes
-
-Copy `frontend_server/.env.example` into `frontend_server/.env.development`, and update `DATA_SERVER_URL` to point to a specific data server url, similar to above.
-
-To run the frontend server locally, navigate to the `frontend_server/` directory and run:
-
-```bash
-node -r dotenv/config server.js dotenv_config_path=.env.development
-```
-
-This will start the server at `http://localhost:8080`. However, since it mostly serves static files from the `build/` directory, you will either need to
-
-1. run the frontend server separately and set the `VITE_BASE_API_URL` url to `http://localhost:8080` (see above), or
-2. go to the `frontend/` directory and run `npm run build:development`. Then copy the `frontend/build/` directory to `frontend_server/build/`
-
-Similarly to the frontend React app, the frontend server can be configured for local development by changing environment variables in `frontend_server/.env.development`. Copy `frontend_server/.env.example` to get started.
-
-#### Running the Frontend Server with Docker locally
-
-If you need to test Dockerfile changes or run the frontend in a way that more closely mirrors the production environment, you can run it using Docker. This will build both the frontend React app and the frontend server.
-
-Run the following commands from the root project directory:
-
-1. Build the frontend Docker image:
-   `docker build -t <some-identifying-tag> -f frontend_server/Dockerfile . --build-arg="DEPLOY_CONTEXT=development"`
-2. Run the frontend Docker image:
-   `docker run -p 49160:8080 -d <some-identifying-tag>`
-3. Navigate to `http://localhost:49160`.
-
-When building with Docker, changes will not automatically be applied; you will need to rebuild the Docker image.
-
-#### Running the Frontend Server in your own GCP project
-
-Refer to [Deploying your own instance with terraform](#deploying-your-own-instance-with-terraform) for instructions on deploying the frontend server to your own GCP project.
 
 ## Advanced Backend Configuration
 

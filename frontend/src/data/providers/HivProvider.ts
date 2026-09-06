@@ -29,6 +29,7 @@ const DEATHS_METRICS: MetricId[] = [
   'hiv_deaths_pct_relative_inequity',
   'hiv_deaths_pct_share',
   'hiv_deaths_per_100k',
+  'hiv_deaths_per_100k_is_suppressed',
   'hiv_deaths_ratio_age_adjusted',
   'hiv_deaths',
 ]
@@ -37,6 +38,7 @@ const DIAGNOSES_METRICS: MetricId[] = [
   'hiv_diagnoses_pct_relative_inequity',
   'hiv_diagnoses_pct_share',
   'hiv_diagnoses_per_100k',
+  'hiv_diagnoses_per_100k_is_suppressed',
   'hiv_diagnoses',
 ]
 
@@ -53,6 +55,7 @@ const PREVALENCE_METRICS: MetricId[] = [
   'hiv_prevalence_pct_relative_inequity',
   'hiv_prevalence_pct_share',
   'hiv_prevalence_per_100k',
+  'hiv_prevalence_per_100k_is_suppressed',
   'hiv_prevalence',
 ]
 
@@ -108,7 +111,7 @@ class HivProvider extends VariableProvider {
       ? datasetId
       : appendFipsIfNeeded(datasetId, breakdowns)
     const hiv = await getDataManager().loadDataset(specificDatasetId)
-    let df = hiv.toDataFrame()
+    let df = hiv.rows
     df = this.filterByGeo(df, breakdowns)
     df = this.renameGeoColumns(df, breakdowns)
 
@@ -116,9 +119,14 @@ class HivProvider extends VariableProvider {
       df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
     } else {
       df = this.applyDemographicBreakdownFilters(df, breakdowns)
-      df = this.removeUnrequestedColumns(df, metricQuery)
     }
-    return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+    df = this.removeUnrequestedColumns(df, metricQuery)
+    return new MetricQueryResponse(
+      df,
+      consumedDatasetIds,
+      undefined,
+      !!isFallbackId,
+    )
   }
 
   allowsBreakdowns(breakdowns: Breakdowns, metricIds: MetricId[]): boolean {

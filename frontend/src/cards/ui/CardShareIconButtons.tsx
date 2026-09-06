@@ -1,24 +1,22 @@
 import type { ComponentType } from 'react'
-import {
-  EmailIcon,
-  EmailShareButton,
-  FacebookIcon,
-  FacebookShareButton,
-  LinkedinIcon,
-  LinkedinShareButton,
-  TwitterShareButton,
-  XIcon,
-} from 'react-share'
-import { het } from '../../styles/DesignTokens'
 import { HetCardExportMenuItem } from '../../styles/HetComponents/HetCardExportMenuItem'
+import { colors } from '../../styles/tokens/colors'
 import { useCardImage } from '../../utils/hooks/useCardImage'
 import type { PopoverElements } from '../../utils/hooks/usePopover'
 import type { ScrollableHashId } from '../../utils/hooks/useStepObserver'
+import {
+  EmailIcon,
+  emailShareUrl,
+  FacebookIcon,
+  facebookShareUrl,
+  LinkedinIcon,
+  linkedinShareUrl,
+  openShareWindow,
+  type ShareIconProps,
+} from '../../utils/socialShare'
 
 const shareIconAttributes = {
-  iconFillColor: het.hexShareIconGray,
-  bgStyle: { fill: 'none' },
-  size: 39,
+  iconFillColor: colors.hexShareIconGray,
 }
 
 interface CardShareIconButtonsProps {
@@ -27,76 +25,80 @@ interface CardShareIconButtonsProps {
   scrollToHash: ScrollableHashId
 }
 
-interface ShareButtonConfig {
-  ShareButton: ComponentType<any>
-  Icon: ComponentType<any>
+interface ShareConfig {
+  Icon: ComponentType<ShareIconProps>
   label: string
-  options: Record<string, any>
+  href: string
+  ariaLabel: string
+  openInWindow: boolean
 }
 
 export default function CardShareIconButtons(props: CardShareIconButtonsProps) {
   const title = `Health Equity Tracker - ${props.reportTitle}`
-  const emailShareBody = `${title}${'\n'}${'\n'}`
+  const emailBody = `${title}\n\n`
 
   const { cardUrlWithHash, handleClose } = useCardImage(
     props.popover,
     props.scrollToHash,
   )
 
-  const shareButtons: ShareButtonConfig[] = [
+  const shareConfigs: ShareConfig[] = [
     {
-      ShareButton: TwitterShareButton,
-      Icon: XIcon,
-      label: 'Share on X',
-      options: {
-        hashtags: ['healthequity'],
-        related: ['@SatcherHealth', '@MSMEDU'],
-        'aria-label': 'Share to X (formerly Twitter)',
-      },
-    },
-    {
-      ShareButton: FacebookShareButton,
       Icon: FacebookIcon,
       label: 'Share on Facebook',
-      options: {
-        hashtag: '#healthequity',
-        'aria-label': 'Post this report to Facebook',
-      },
+      href: facebookShareUrl(cardUrlWithHash),
+      ariaLabel: 'Post this report to Facebook',
+      openInWindow: true,
     },
     {
-      ShareButton: LinkedinShareButton,
       Icon: LinkedinIcon,
       label: 'Share on LinkedIn',
-      options: {
-        source: 'Health Equity Tracker',
-        'aria-label': 'Share to LinkedIn',
-      },
+      href: linkedinShareUrl(cardUrlWithHash),
+      ariaLabel: 'Share to LinkedIn',
+      openInWindow: true,
     },
     {
-      ShareButton: EmailShareButton,
       Icon: EmailIcon,
       label: 'Email card link',
-      options: {
-        body: emailShareBody,
-        subject: 'Sharing from healthequitytracker.org',
-        'aria-label': 'Share by email',
-      },
+      href: emailShareUrl(
+        cardUrlWithHash,
+        'Sharing from healthequitytracker.org',
+        emailBody,
+      ),
+      ariaLabel: 'Share by email',
+      openInWindow: false,
     },
   ]
 
   return (
     <>
-      {shareButtons.map(({ ShareButton, Icon, label, options }) => (
+      {shareConfigs.map(({ Icon, label, href, ariaLabel, openInWindow }) => (
         <HetCardExportMenuItem
           key={label}
           Icon={Icon}
           onClick={handleClose}
-          className='p-0'
+          className='py-0 pr-0'
+          iconClassName='h-12'
+          spanClassName='py-0 pr-4'
           iconProps={shareIconAttributes}
         >
-          <ShareButton url={cardUrlWithHash} {...options}>
+          <a
+            href={href}
+            aria-label={ariaLabel}
+            target={openInWindow ? '_blank' : undefined}
+            rel={openInWindow ? 'noopener noreferrer' : undefined}
+            className='font-normal text-alt-black no-underline'
+            onClick={
+              openInWindow
+                ? (e) => {
+                    e.preventDefault()
+                    openShareWindow(href)
+                  }
+                : undefined
+            }
+          >
             {label}
-          </ShareButton>
+          </a>
         </HetCardExportMenuItem>
       ))}
     </>

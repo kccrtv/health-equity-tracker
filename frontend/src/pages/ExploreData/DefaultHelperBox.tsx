@@ -9,17 +9,20 @@ export default function DefaultHelperBox() {
   const isMobile = !useIsBreakpointAndUp('md')
 
   return (
-    <div className='flex w-full items-center justify-center px-12 pt-4 pb-0 sm:px-20 sm:pt-8'>
+    <div className='flex w-full items-center justify-center px-4 pt-4 pb-0 sm:px-12 sm:pt-8'>
       <div className='m-0 mb-5 w-full max-w-helper-box content-center items-center justify-evenly justify-items-center rounded-md pb-0'>
         <div className='px-10 xs:px-2 py-0 text-left smplus:px-0 md:px-10'>
           <h1
             id='main-heading'
-            className='m-0 text-center font-bold font-sans-title text-alt-green text-base text-header leading-modal-heading'
+            className='m-0 text-center font-bold font-sans-title text-alt-green text-title leading-tight md:text-header md:leading-modal-heading'
           >
-            Select a topic above
+            Select a topic
           </h1>
-          <p className='my-4 text-center text-text'>
-            or explore one of the following reports:
+          <p className='mt-1 mb-2 text-center text-text md:my-4'>
+            <span className='md:hidden'>or explore these reports:</span>
+            <span className='hidden md:inline'>
+              or explore one of the following reports:
+            </span>
           </p>
           <ul
             className='my-0 flex list-none flex-wrap pl-0 text-left'
@@ -27,7 +30,7 @@ export default function DefaultHelperBox() {
           >
             {reportMappings.map((report, index) => (
               <li
-                className='group mx-0 my-4 xs:my-2 flex w-full flex-col rounded-md border border-alt-green border-solid bg-white transition-all duration-300 ease-in-out hover:shadow-raised'
+                className='group mx-0 my-4 xs:my-2 flex w-full flex-col rounded-md border border-alt-green border-solid bg-alt-white transition-all duration-300 ease-in-out hover:shadow-raised'
                 key={report.title}
               >
                 <article
@@ -59,7 +62,7 @@ export default function DefaultHelperBox() {
                         {report.title} {report.icon && report.icon}
                       </a>
                     </h2>
-                    <p className='my-0 hidden text-black md:mb-4 md:block'>
+                    <p className='my-0 hidden text-alt-black md:mb-4 md:block'>
                       {report.description}
                     </p>
                     <HetTextArrowLink

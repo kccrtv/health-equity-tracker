@@ -21,9 +21,7 @@ describe('test getTotalACSPopulationPhrase()', () => {
     const normalPopPhrase = getTotalACSPopulationPhrase(
       /* data */ nationalACSPopData,
     )
-    expect(normalPopPhrase).toEqual(
-      'Total population: 328,016,242 (from ACS 2022)',
-    )
+    expect(normalPopPhrase).toEqual('Total population: 328,016,242 (from ACS)')
   })
 })
 
@@ -121,7 +119,7 @@ describe('test getSubPopulationPhrase()', () => {
       /* dataTypeConfig */ statinsAdherenceConfig,
     )
     expect(medicarePopPhrase).toEqual(
-      'Total population of Medicare Statins Beneficiaries, Ages 18+: unavailable (from CMS)',
+      'Total population of Medicare Statins Beneficiaries, Ages 18+: Unavailable (from CMS)',
     )
   })
 

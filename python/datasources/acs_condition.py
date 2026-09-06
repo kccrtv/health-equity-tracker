@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from datasources.data_source import DataSource
 from ingestion import url_file_to_gcs, gcs_to_bq_util, census
@@ -47,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 EARLIEST_ACS_CONDITION_YEAR = "2012"
-CURRENT_ACS_CONDITION_YEAR = "2022"
+CURRENT_ACS_CONDITION_YEAR = "2024"
 
 # available years with all topics working
 ACS_URLS_MAP = {
@@ -61,7 +62,9 @@ ACS_URLS_MAP = {
     "2019": "https://api.census.gov/data/2019/acs/acs5",
     "2020": "https://api.census.gov/data/2020/acs/acs5",
     "2021": "https://api.census.gov/data/2021/acs/acs5",
-    CURRENT_ACS_CONDITION_YEAR: "https://api.census.gov/data/2022/acs/acs5",
+    "2022": "https://api.census.gov/data/2022/acs/acs5",
+    "2023": "https://api.census.gov/data/2023/acs/acs5",
+    CURRENT_ACS_CONDITION_YEAR: "https://api.census.gov/data/2024/acs/acs5",
 }
 
 
@@ -323,6 +326,8 @@ class AcsCondition(DataSource):
         # writes the data to the GCS bucket and sees if file diff is changed
 
         file_diff = False
+        census_api_key = os.getenv("CENSUS_API_KEY")
+
         for measure, acs_item in acs_items.items():
             for prefix, race in acs_item.prefix_map.items():
                 for county_level in [True, False]:
@@ -333,6 +338,7 @@ class AcsCondition(DataSource):
                             params,
                             bucket,
                             self.get_filename_race(measure, race, county_level, year),
+                            census_api_key=census_api_key,
                         )
                         or file_diff
                     )
@@ -345,6 +351,7 @@ class AcsCondition(DataSource):
                         params,
                         bucket,
                         self.get_filename_sex(measure, county_level, year),
+                        census_api_key=census_api_key,
                     )
                     or file_diff
                 )

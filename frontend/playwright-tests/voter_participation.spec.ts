@@ -10,7 +10,7 @@ test('Voter Participation Flow', async ({ page }) => {
     .frameLocator('iframe[title="Vote\\.org Registration Checker"]')
     .getByRole('heading', { name: 'Are You Registered to Vote?' })
     .click()
-  await page.getByLabel('close modal').click()
+  await page.getByLabel('close dialog').click()
   await page
     .locator('#rate-map')
     .getByRole('heading', { name: 'Voter participation in the' })
@@ -24,15 +24,10 @@ test('Voter Participation Flow', async ({ page }) => {
     .getByRole('heading', { name: 'U.S. citizens, Ages 18+' })
     .click()
   // await page.getByLabel('Bar Chart showing Voter').click() // CANT SHOW BY RACE RIGHT NOW FOR VOTING
-  await page.getByRole('heading', { name: 'Share of all voter' }).click()
-  await page.getByText('No unknown values for race').click()
-  await page
-    .getByRole('heading', { name: 'Graph unavailable: Population' })
-    .click()
   await page.getByRole('heading', { name: 'Summary for voter' }).click()
   await page.getByRole('columnheader', { name: 'Race/Ethnicity' }).click()
-  await page.getByRole('cell', { name: 'Asian (NH)' }).click()
+  await page.getByRole('rowheader', { name: 'Asian (NH)' }).click()
   await page
-    .getByRole('cell', { name: 'Black or African American (NH)' })
+    .getByRole('rowheader', { name: 'Black or African American (NH)' })
     .click()
 })

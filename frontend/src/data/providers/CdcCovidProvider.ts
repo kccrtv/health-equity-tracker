@@ -66,11 +66,11 @@ class CdcCovidProvider extends VariableProvider {
       : appendFipsIfNeeded(datasetId, breakdowns)
     const covidDataset = await getDataManager().loadDataset(specificDatasetId)
     const consumedDatasetIds = [datasetId]
-    let df = covidDataset.toDataFrame()
+    let df = covidDataset.rows
 
     df = this.filterByGeo(df, breakdowns)
 
-    if (df.toArray().length === 0) {
+    if (df.length === 0) {
       return new MetricQueryResponse([], consumedDatasetIds)
     }
     df = this.renameGeoColumns(df, breakdowns)
@@ -130,10 +130,15 @@ class CdcCovidProvider extends VariableProvider {
       df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
     } else {
       df = this.applyDemographicBreakdownFilters(df, breakdowns)
-      df = this.removeUnrequestedColumns(df, metricQuery)
     }
+    df = this.removeUnrequestedColumns(df, metricQuery)
 
-    return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+    return new MetricQueryResponse(
+      df,
+      consumedDatasetIds,
+      undefined,
+      !!isFallbackId,
+    )
   }
 
   allowsBreakdowns(breakdowns: Breakdowns): boolean {

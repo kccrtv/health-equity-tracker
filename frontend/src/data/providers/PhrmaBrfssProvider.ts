@@ -93,7 +93,7 @@ class PhrmaBrfssProvider extends VariableProvider {
       : appendFipsIfNeeded(datasetId, breakdowns)
 
     const phrma = await getDataManager().loadDataset(specificDatasetId)
-    let df = phrma.toDataFrame()
+    let df = phrma.rows
 
     df = this.filterByGeo(df, breakdowns)
     df = this.renameGeoColumns(df, breakdowns)
@@ -102,11 +102,16 @@ class PhrmaBrfssProvider extends VariableProvider {
       df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
     } else {
       df = this.applyDemographicBreakdownFilters(df, breakdowns)
-      df = this.removeUnrequestedColumns(df, metricQuery)
     }
+    df = this.removeUnrequestedColumns(df, metricQuery)
 
     const consumedDatasetIds = [datasetId]
-    return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+    return new MetricQueryResponse(
+      df,
+      consumedDatasetIds,
+      undefined,
+      !!isFallbackId,
+    )
   }
 
   allowsBreakdowns(breakdowns: Breakdowns): boolean {

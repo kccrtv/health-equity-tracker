@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { useLocation } from 'react-router'
 import type { RouteConfig } from '../../pages/sharedTypes'
 import HetDivider from './HetDivider'
 import HetListItemButton from './HetListItemButton'
@@ -10,14 +10,19 @@ interface HetCardMenuProps {
 }
 
 export default function HetCardMenu(props: HetCardMenuProps) {
+  const location = useLocation()
+
   return (
     <nav
-      role='menu'
       aria-label={props.ariaLabel}
       className={`ml-0 flex flex-col rounded-sm py-0 pl-0 tracking-normal shadow-raised-tighter ${props.className ?? ''} `}
     >
       {props.routeConfigs.map((config) => (
-        <HetDesktopMenuItem key={config.path} routeConfig={config} />
+        <HetDesktopMenuItem
+          key={config.path}
+          routeConfig={config}
+          selected={location.pathname === config.path}
+        />
       ))}
     </nav>
   )
@@ -25,26 +30,26 @@ export default function HetCardMenu(props: HetCardMenuProps) {
 
 interface HetDesktopMenuItemProps {
   routeConfig: RouteConfig
+  selected: boolean
 }
 
 function HetDesktopMenuItem(props: HetDesktopMenuItemProps) {
   return (
     <>
       {props.routeConfig.isTopLevel && (
-        <li className='m-0 list-none p-0' aria-hidden>
+        <div className='m-0 p-0' aria-hidden>
           <HetDivider />
-        </li>
+        </div>
       )}
 
       <HetListItemButton
+        to={props.routeConfig.path}
         className='mx-2 pl-2 font-roboto'
-        selected={window.location.pathname === props.routeConfig.path}
-        aria-label={props.routeConfig.label}
+        selected={props.selected}
+        ariaLabel={props.routeConfig.label}
         option={props.routeConfig.isTopLevel ? 'boldGreenCol' : 'normalBlack'}
       >
-        <Link className='no-underline' to={props.routeConfig.path}>
-          {props.routeConfig.label}
-        </Link>
+        {props.routeConfig.label}
       </HetListItemButton>
     </>
   )

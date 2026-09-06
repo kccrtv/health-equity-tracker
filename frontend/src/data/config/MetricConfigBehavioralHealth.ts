@@ -1,5 +1,7 @@
 import { defaultHigherIsWorseMapConfig } from '../../charts/mapGlobals'
 import {
+  adultPopulationPctShortLabel,
+  adultPopulationPctTitle,
   populationPctShortLabel,
   populationPctTitle,
 } from './MetricConfigConstants'
@@ -18,11 +20,12 @@ export type BehavioralHealthDataTypeId = 'non_medical_drug_use'
 
 export type BehavioralHealthMetricId =
   | 'ahr_population_pct'
+  | 'ahr_18plus_population_pct'
   | 'depression_pct_share'
   | 'depression_per_100k'
   | 'depression_estimated_total'
   | 'excessive_drinking_pct_share'
-  | 'excessive_drinking_per_100k'
+  | 'excessive_drinking_pct_rate'
   | 'excessive_drinking_estimated_total'
   | 'frequent_mental_distress_pct_share'
   | 'frequent_mental_distress_per_100k'
@@ -67,10 +70,10 @@ export const DEPRESSION_METRICS: DataTypeConfig[] = [
         type: 'pct_share',
         populationComparisonMetric: {
           chartTitle:
-            'Population vs. distribution of total adult depression cases',
-          metricId: 'ahr_population_pct',
-          columnTitleHeader: populationPctTitle,
-          shortLabel: populationPctShortLabel,
+            'Adult population vs. distribution of total adult depression cases',
+          metricId: 'ahr_18plus_population_pct',
+          columnTitleHeader: adultPopulationPctTitle,
+          shortLabel: adultPopulationPctShortLabel,
           type: 'pct_share',
         },
       },
@@ -89,7 +92,7 @@ export const DEPRESSION_METRICS: DataTypeConfig[] = [
           type: 'count',
         },
         rateDenominatorMetric: {
-          metricId: 'ahr_population_18plus',
+          metricId: 'ahr_18plus_population_estimated_total',
           chartTitle: '',
           shortLabel: 'Total pop. 18+',
           type: 'count',
@@ -132,33 +135,20 @@ export const EXCESSIVE_DRINKING_METRICS: DataTypeConfig[] = [
         type: 'pct_share',
         populationComparisonMetric: {
           chartTitle:
-            'Population vs. distribution of total adult excessive drinking cases',
-          metricId: 'ahr_population_pct',
-          columnTitleHeader: populationPctTitle,
-          shortLabel: populationPctShortLabel,
+            'Adult population vs. distribution of total adult excessive drinking cases',
+          metricId: 'ahr_18plus_population_pct',
+          columnTitleHeader: adultPopulationPctTitle,
+          shortLabel: adultPopulationPctShortLabel,
           type: 'pct_share',
         },
       },
-      per100k: {
+      pct_rate: {
         timeSeriesCadence: 'yearly',
-        metricId: 'excessive_drinking_per_100k',
-        columnTitleHeader: 'Excessive drinking cases per 100k adults',
+        metricId: 'excessive_drinking_pct_rate',
+        columnTitleHeader: 'Excessive drinking rate',
         chartTitle: 'Excessive drinking cases',
-        shortLabel: 'cases per 100k adults',
-        type: 'per100k',
-        rateNumeratorMetric: {
-          metricId: 'excessive_drinking_estimated_total',
-          chartTitle: 'Cases of excessive drinking',
-          columnTitleHeader: 'Cases of excessive drinking',
-          shortLabel: 'cases',
-          type: 'count',
-        },
-        rateDenominatorMetric: {
-          metricId: 'ahr_population_18plus',
-          chartTitle: '',
-          shortLabel: 'Total pop. 18+',
-          type: 'count',
-        },
+        shortLabel: '% of adults',
+        type: 'pct_rate',
       },
     },
   },
@@ -198,10 +188,10 @@ export const SUBSTANCE_MISUSE_METRICS: DataTypeConfig[] = [
         type: 'pct_share',
         populationComparisonMetric: {
           chartTitle:
-            'Population vs. distribution of total adult non-medical drug use',
-          metricId: 'ahr_population_pct',
-          columnTitleHeader: populationPctTitle,
-          shortLabel: populationPctShortLabel,
+            'Adult population vs. distribution of total adult non-medical drug use',
+          metricId: 'ahr_18plus_population_pct',
+          columnTitleHeader: adultPopulationPctTitle,
+          shortLabel: adultPopulationPctShortLabel,
           type: 'pct_share',
         },
       },
@@ -221,7 +211,7 @@ export const SUBSTANCE_MISUSE_METRICS: DataTypeConfig[] = [
           type: 'count',
         },
         rateDenominatorMetric: {
-          metricId: 'ahr_population_18plus',
+          metricId: 'ahr_18plus_population_estimated_total',
           chartTitle: '',
           shortLabel: 'Total pop. 18+',
           type: 'count',
@@ -264,10 +254,10 @@ export const FREQUENT_MENTAL_DISTRESS_METRICS: DataTypeConfig[] = [
         type: 'pct_share',
         populationComparisonMetric: {
           chartTitle:
-            'Population vs. distribution of total adult frequent mental distress cases',
-          metricId: 'ahr_population_pct',
-          columnTitleHeader: populationPctTitle,
-          shortLabel: populationPctShortLabel,
+            'Adult population vs. distribution of total adult frequent mental distress cases',
+          metricId: 'ahr_18plus_population_pct',
+          columnTitleHeader: adultPopulationPctTitle,
+          shortLabel: adultPopulationPctShortLabel,
           type: 'pct_share',
         },
       },
@@ -287,7 +277,7 @@ export const FREQUENT_MENTAL_DISTRESS_METRICS: DataTypeConfig[] = [
           type: 'count',
         },
         rateDenominatorMetric: {
-          metricId: 'ahr_population_18plus',
+          metricId: 'ahr_18plus_population_estimated_total',
           chartTitle: '',
           shortLabel: 'Total pop. 18+',
           type: 'count',

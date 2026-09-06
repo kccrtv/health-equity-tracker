@@ -1,9 +1,114 @@
-import { atom } from 'jotai'
+import { atom, getDefaultStore } from 'jotai'
+import { selectAtom } from 'jotai/utils'
+import { atomFamily } from 'jotai-family'
 import { atomWithLocation } from 'jotai-location'
+import { METRIC_CONFIG } from '../data/config/MetricConfig'
 import type { DataTypeConfig } from '../data/config/MetricConfigTypes'
+import type { DemographicType } from '../data/query/Breakdowns'
+import type { MetricQueryResponse } from '../data/query/MetricQuery'
+import type { Fips } from '../data/utils/Fips'
+import type { ReportInsightSections } from './generateReportInsight'
+import type { InsightSection } from './insightPayload'
+import {
+  DATA_TYPE_1_PARAM,
+  DATA_TYPE_2_PARAM,
+  MADLIB_SELECTIONS_PARAM,
+  parseMls,
+} from './urlutils'
 
-export const selectedDataTypeConfig1Atom = atom<DataTypeConfig | null>(null)
-export const selectedDataTypeConfig2Atom = atom<DataTypeConfig | null>(null)
+export const selectedFipsAtom = atom<Fips | null>(null)
+export const selectedDemographicTypeAtom = atom<DemographicType | null>(null)
 
-/* SHARED SYNCED URL PARAMS STATE */
+// The id of the section a hash-navigation scroll most recently targeted
+// (deep link, "on this page" menu, breadcrumb drill-out, table of contents).
+// Written by scrollToHashTarget (useScrollToHash.ts) via getDefaultStore,
+// since that function runs outside React and is the single place every
+// scroll-to-anchor path already converges on. Kept separate from locationAtom
+// because several call sites write partial location updates (e.g.
+// `setLocationAtom({ searchParams: next })`) that would otherwise drop the
+// hash from the atom's in-memory value until the next popstate.
+export const activeHashIdAtom = atom<string | null>(
+  window.location.hash.slice(1) || null,
+)
+
+// scrollToHashTarget writes the URL with history.replaceState, which does not
+// fire hashchange, so this listener never double-handles an app-initiated
+// scroll. It exists for the hash changes the app did not make: a manually
+// edited URL, back/forward across hash entries, and plain <a href="#..."> links.
+// Without it the atom silently falls out of sync with the URL and the "on this
+// page" menu keeps highlighting the previous section.
+window.addEventListener('hashchange', () => {
+  getDefaultStore().set(activeHashIdAtom, window.location.hash.slice(1) || null)
+})
+
+/* CARD INSIGHT CACHE — keyed by scrollToHash + dataTypeId + fipsCode + demographicType (+ '-2' for compare card) */
+export const cardInsightsAtom = atom<Record<string, InsightSection>>({})
+
+/* CARD INSIGHT OPEN STATE — keyed by scrollToHash (+ '-2' for compare card) */
+export const cardInsightOpenAtom = atom<Record<string, boolean>>({})
+
+/* CONTRAST INSIGHT OPEN STATE — keyed by scrollToHash; shared between InsightVisualizationButton and ContrastInsightSection */
+export const contrastInsightOpenAtom = atom<Record<string, boolean>>({})
+
+/* CONTRAST INSIGHT CACHE — keyed by scrollToHash + both dataTypeIds + both fipsCodes + demographicType */
+export const contrastInsightsAtom = atom<Record<string, InsightSection>>({})
+
+/* CARD QUERY RESPONSES — keyed same as cardInsightsAtom; published by CardWrapper for ContrastInsightSection to consume. */
+export const cardQueryResponsesAtom = atom<
+  Record<string, MetricQueryResponse[]>
+>({})
+
+/* REPORT INSIGHT CACHE — keyed by dataTypeId + fipsCode + demographicType */
+export type ReportInsightCacheEntry = {
+  sections: ReportInsightSections
+}
+export const reportInsightsAtom = atom<Record<string, ReportInsightCacheEntry>>(
+  {},
+)
+
+/* URL PARAMS — all written via setLocationAtom (single pushState per action).
+ * jotai-location's popstate listener keeps locationAtom current on back/forward.
+ * Components subscribe via urlParamAtom(key) for fine-grained re-renders.
+ */
 export const locationAtom = atomWithLocation()
+
+// Per-param derived atoms. selectAtom with Object.is equality means a component
+// subscribed to urlParamAtom('demo') only re-renders when 'demo' changes,
+// not when any other URL param changes.
+export const urlParamAtom = atomFamily((key: string) =>
+  selectAtom(
+    locationAtom,
+    (loc) => loc.searchParams?.get(key) ?? null,
+    Object.is,
+  ),
+)
+
+// Flattened once at module level — METRIC_CONFIG is static.
+const ALL_METRIC_CONFIGS = Object.values(METRIC_CONFIG).flat()
+
+// Derived from dt1/dt2 URL params, with fallback to the first config for the
+// topic encoded in the mls param. Returns null only when no topic is selected.
+export const selectedDataTypeConfig1Atom = atom<DataTypeConfig | null>(
+  (get) => {
+    const dt1 = get(urlParamAtom(DATA_TYPE_1_PARAM))
+    if (dt1) return ALL_METRIC_CONFIGS.find((c) => c.dataTypeId === dt1) ?? null
+    const mls = get(urlParamAtom(MADLIB_SELECTIONS_PARAM))
+    if (!mls) return null
+    const topic = parseMls(mls)[1]
+    return METRIC_CONFIG[topic as keyof typeof METRIC_CONFIG]?.[0] ?? null
+  },
+)
+
+// For comparevars mode: falls back to the first config for the second topic in
+// mls. In comparegeos/disparity mode, mls index 3 is a FIPS code, so
+// METRIC_CONFIG lookup returns undefined and the atom correctly returns null.
+export const selectedDataTypeConfig2Atom = atom<DataTypeConfig | null>(
+  (get) => {
+    const dt2 = get(urlParamAtom(DATA_TYPE_2_PARAM))
+    if (dt2) return ALL_METRIC_CONFIGS.find((c) => c.dataTypeId === dt2) ?? null
+    const mls = get(urlParamAtom(MADLIB_SELECTIONS_PARAM))
+    if (!mls) return null
+    const topic = parseMls(mls)[3]
+    return METRIC_CONFIG[topic as keyof typeof METRIC_CONFIG]?.[0] ?? null
+  },
+)

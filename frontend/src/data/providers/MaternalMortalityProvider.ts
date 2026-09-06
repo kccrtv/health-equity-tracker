@@ -43,10 +43,10 @@ class MaternalMortalityProvider extends VariableProvider {
       const maternalMortalityDataset =
         await getDataManager().loadDataset(datasetId)
       const consumedDatasetIds = [datasetId]
-      let df = maternalMortalityDataset.toDataFrame()
+      let df = maternalMortalityDataset.rows
       df = this.filterByGeo(df, breakdowns)
 
-      if (df.toArray().length === 0) {
+      if (df.length === 0) {
         return new MetricQueryResponse([], consumedDatasetIds)
       }
       df = this.renameGeoColumns(df, breakdowns)
@@ -55,10 +55,15 @@ class MaternalMortalityProvider extends VariableProvider {
         df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
       } else {
         df = this.applyDemographicBreakdownFilters(df, breakdowns)
-        df = this.removeUnrequestedColumns(df, metricQuery)
       }
+      df = this.removeUnrequestedColumns(df, metricQuery)
 
-      return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+      return new MetricQueryResponse(
+        df,
+        consumedDatasetIds,
+        undefined,
+        !!isFallbackId,
+      )
     } catch (error) {
       console.error('Error fetching maternal mortality data:', error)
       throw error

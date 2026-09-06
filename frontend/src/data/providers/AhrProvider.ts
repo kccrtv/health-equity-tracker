@@ -40,6 +40,7 @@ export const AHR_CONDITIONS: DropdownVarId[] = [
   'excessive_drinking',
   'frequent_mental_distress',
   'preventable_hospitalizations',
+  'severe_maternal_morbidity',
   'substance',
   'suicide',
   'voter_participation',
@@ -48,7 +49,8 @@ export const AHR_CONDITIONS: DropdownVarId[] = [
 export const AHR_METRICS: MetricId[] = [
   'ahr_population_pct',
   'ahr_population_estimated_total',
-  'ahr_population_18plus',
+  'ahr_18plus_population_estimated_total',
+  'ahr_18plus_population_pct',
   'asthma_pct_share',
   'asthma_per_100k',
   'asthma_estimated_total',
@@ -71,7 +73,7 @@ export const AHR_METRICS: MetricId[] = [
   'diabetes_per_100k',
   'diabetes_estimated_total',
   'excessive_drinking_pct_share',
-  'excessive_drinking_per_100k',
+  'excessive_drinking_pct_rate',
   'excessive_drinking_estimated_total',
   'frequent_mental_distress_pct_share',
   'frequent_mental_distress_per_100k',
@@ -79,12 +81,11 @@ export const AHR_METRICS: MetricId[] = [
   'non_medical_drug_use_pct_share',
   'non_medical_drug_use_per_100k',
   'non_medical_drug_use_estimated_total',
-  'preventable_hospitalizations_pct_share',
   'preventable_hospitalizations_per_100k',
+  'severe_maternal_morbidity_per_100k',
 ]
 
 export const AHR_VOTER_AGE_METRICS: MetricId[] = [
-  'voter_participation_pct_share',
   'voter_participation_pct_rate',
 ]
 
@@ -95,7 +96,6 @@ export const AHR_DECADE_PLUS_5_AGE_METRICS: MetricId[] = [
 ]
 
 export const AHR_API_NH_METRICS: MetricId[] = [
-  'preventable_hospitalizations_pct_share',
   'preventable_hospitalizations_per_100k',
 ]
 
@@ -109,9 +109,10 @@ const CHR_METRICS: MetricId[] = [
   'suicide_per_100k',
   'voter_participation_pct_rate',
   'diabetes_per_100k',
-  'excessive_drinking_per_100k',
+  'excessive_drinking_pct_rate',
   'frequent_mental_distress_per_100k',
   'preventable_hospitalizations_per_100k',
+  'chr_population_pct',
 ] // TODO: Gun deaths are also from CHR but are loaded via the GunViolenceProvider not here. Should improve this somehow
 
 export const AHR_DATATYPES_WITH_MISSING_AGE_DEMO: DataTypeId[] = [
@@ -121,6 +122,12 @@ export const AHR_DATATYPES_WITH_MISSING_AGE_DEMO: DataTypeId[] = [
 
 export const AHR_PARTIAL_RESTRICTED_DEMOGRAPHIC_DETAILS = [
   ['Age', 'unavailable for Substance Misuse and Preventable Hospitalizations'],
+]
+
+// Severe maternal morbidity is a female-only measure (delivery hospitalizations),
+// so AHR publishes no sex breakdown — race and age only.
+export const SEVERE_MATERNAL_MORBIDITY_RESTRICTED_DEMOGRAPHIC_DETAILS = [
+  ['Sex', 'unavailable for Severe Maternal Morbidity'],
 ]
 
 export const CHR_RESTRICTED_DEMOGRAPHIC_DETAILS = [
@@ -156,7 +163,7 @@ class AhrProvider extends VariableProvider {
       ? datasetId
       : appendFipsIfNeeded(datasetId, breakdowns)
     const ahr = await getDataManager().loadDataset(specificDatasetId)
-    let df = ahr.toDataFrame()
+    let df = ahr.rows
 
     const consumedDatasetIds = [datasetId]
 
@@ -167,10 +174,15 @@ class AhrProvider extends VariableProvider {
       df = this.castAllsAsRequestedDemographicBreakdown(df, breakdowns)
     } else {
       df = this.applyDemographicBreakdownFilters(df, breakdowns)
-      df = this.removeUnrequestedColumns(df, metricQuery)
     }
+    df = this.removeUnrequestedColumns(df, metricQuery)
 
-    return new MetricQueryResponse(df.toArray(), consumedDatasetIds)
+    return new MetricQueryResponse(
+      df,
+      consumedDatasetIds,
+      undefined,
+      !!isFallbackId,
+    )
   }
 
   allowsBreakdowns(breakdowns: Breakdowns, metricIds?: MetricId[]): boolean {

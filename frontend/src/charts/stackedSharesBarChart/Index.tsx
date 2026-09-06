@@ -1,5 +1,5 @@
 import { scaleBand, scaleLinear } from 'd3'
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import type { MetricConfig } from '../../data/config/MetricConfigTypes'
 import {
   type DemographicType,
@@ -8,9 +8,10 @@ import {
 import { sortByIncome } from '../../data/sorting/IncomeSorterStrategy'
 import type { HetRow } from '../../data/utils/DatasetTypes'
 import type { Fips } from '../../data/utils/Fips'
-import { het } from '../../styles/DesignTokens'
+import { colors } from '../../styles/tokens/colors'
 import { useIsBreakpointAndUp } from '../../utils/hooks/useIsBreakpointAndUp'
 import { useResponsiveWidth } from '../../utils/hooks/useResponsiveWidth'
+import { HetChartHoverTooltip } from '../HetChartHoverTooltip'
 import {
   MAX_LABEL_WIDTH_BIG,
   MAX_LABEL_WIDTH_SMALL,
@@ -20,19 +21,22 @@ import {
 import VerticalGridlines from '../sharedBarChartPieces/VerticalGridlines'
 import XAxis from '../sharedBarChartPieces/XAxis'
 import YAxis from '../sharedBarChartPieces/YAxis'
+import { useChartTooltip } from '../useChartTooltip'
+import { getStackedBarA11ySummary } from './a11yUtils'
 import StackedBarLegend from './StackedBarLegend'
 import StackedBarsWithLabels from './StackedBarsWithLabels'
+import type { StackedBarTooltipData } from './StackedSharesBarChartTooltip'
 import { StackedSharesBarChartTooltip } from './StackedSharesBarChartTooltip'
-import { useStackedSharesBarChartTooltip } from './useStackedSharesBarChartTooltip'
 
 export const STACKED_BAR_MARGIN = { top: 40, right: 30, bottom: 50, left: 200 }
 const BAR_HEIGHT = 22
 const BAR_PADDING = 0.5
 const PAIR_GAP = 3
 const SET_GAP = 20
+
 export const STACKED_BAR_COLORS = {
-  population: het.barChartLight,
-  distribution: het.barChartDark,
+  population: colors.barChartLight,
+  distribution: colors.barChartDark,
 }
 const LEGEND_HEIGHT = 10
 
@@ -44,13 +48,19 @@ interface StackedBarChartProps {
   demographicType: DemographicType
   metricDisplayName: string
   filename?: string
+  chartTitleId?: string
 }
 
 export function StackedBarChart(props: StackedBarChartProps) {
   const isSmAndUp = useIsBreakpointAndUp('sm')
   const [containerRef, width] = useResponsiveWidth()
-  const { tooltipData, handleTooltip, closeTooltip, handleContainerTouch } =
-    useStackedSharesBarChartTooltip()
+  const {
+    tooltipData,
+    tooltipPos,
+    showTooltip,
+    hideTooltip,
+    hideTooltipDelayed,
+  } = useChartTooltip<StackedBarTooltipData>()
 
   const maxLabelWidth = hasSkinnyGroupLabels(props.demographicType)
     ? MAX_LABEL_WIDTH_SMALL
@@ -91,22 +101,50 @@ export function StackedBarChart(props: StackedBarChartProps) {
     return yScale(demographicValue) || 0
   }
 
+  const generatedSummaryId = useId()
+  const a11ySummary = getStackedBarA11ySummary(
+    processedData,
+    props.lightMetric,
+    props.darkMetric,
+    props.demographicType,
+  )
+  const a11ySummaryId = props.chartTitleId
+    ? `${props.chartTitleId}-summary`
+    : generatedSummaryId
+
   return (
     <div
       ref={containerRef}
-      onTouchStart={handleContainerTouch}
+      onTouchStart={(e) => {
+        if (!(e.target as Element).closest('g[role="img"]')) hideTooltip()
+      }}
       className='relative'
     >
-      <StackedSharesBarChartTooltip
-        data={tooltipData}
-        darkMetric={props.darkMetric}
-        lightMetric={props.lightMetric}
-        demographicType={props.demographicType}
-      />
+      <HetChartHoverTooltip x={tooltipPos?.x ?? null} y={tooltipPos?.y ?? null}>
+        {tooltipData && (
+          <StackedSharesBarChartTooltip
+            data={tooltipData}
+            darkMetric={props.darkMetric}
+            lightMetric={props.lightMetric}
+            demographicType={props.demographicType}
+          />
+        )}
+      </HetChartHoverTooltip>
+      {a11ySummary && (
+        <p id={a11ySummaryId} className='sr-only'>
+          {a11ySummary}
+        </p>
+      )}
       <div
         role='graphics-document'
         aria-roledescription='visualization'
-        aria-label={`Comparison bar chart showing ${props.filename || 'Data'}`}
+        aria-labelledby={props.chartTitleId}
+        aria-label={
+          props.chartTitleId
+            ? undefined
+            : `Comparison bar chart showing ${props.filename || 'Data'}`
+        }
+        aria-describedby={a11ySummary ? a11ySummaryId : undefined}
       >
         <svg width={width} height={height}>
           <g
@@ -128,12 +166,13 @@ export function StackedBarChart(props: StackedBarChartProps) {
               darkMetric={props.darkMetric}
               xScale={xScale}
               yScale={yScale}
-              colors={STACKED_BAR_COLORS}
+              barColors={STACKED_BAR_COLORS}
               barHeight={BAR_HEIGHT}
               pairGap={PAIR_GAP}
               demographicType={props.demographicType}
-              onTooltip={handleTooltip}
-              onCloseTooltip={closeTooltip}
+              activeDemographic={tooltipData?.demographic ?? null}
+              showTooltip={showTooltip}
+              hideTooltipDelayed={hideTooltipDelayed}
             />
 
             <XAxis

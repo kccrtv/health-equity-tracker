@@ -1,11 +1,15 @@
-import type { IDataFrame } from 'data-forge'
 import type {
   DatasetId,
   DatasetIdWithStateFIPSCode,
 } from '../config/DatasetMetadata'
+import {
+  GEOGRAPHIES_COUNTIES_DATASET_ID,
+  GEOGRAPHIES_STATES_DATASET_ID,
+} from '../config/MetadataMap'
 import type {
   DataTypeConfig,
   DataTypeId,
+  MetricConfig,
   MetricId,
 } from '../config/MetricConfigTypes'
 import {
@@ -57,42 +61,6 @@ import type { HetRow } from './DatasetTypes'
 import type { Fips } from './Fips'
 import type { StateFipsCode } from './FipsData'
 
-type JoinType = 'inner' | 'left' | 'outer'
-
-// TODO: consider finding different library for joins, or write our own. This
-// library doesn't support multi-col joins naturally, so this uses a workaround.
-// I've also seen occasional issues with the page hanging that have been
-// difficult to consistently reproduce.
-/**
- * Joins two data frames on the specified columns, keeping all the remaining
- * columns from both.
- */
-export function joinOnCols(
-  df1: IDataFrame,
-  df2: IDataFrame,
-  cols: DemographicType[],
-  joinType: JoinType = 'inner',
-): IDataFrame {
-  const keySelector = (row: any) => {
-    const keys = cols.map((col) => col + ': ' + row[col])
-    return keys.join(',')
-  }
-  const aggFn = (row1: any, row2: any) => ({ ...row2, ...row1 })
-  let joined
-  switch (joinType) {
-    case 'inner':
-      joined = df1.join(df2, keySelector, keySelector, aggFn)
-      break
-    case 'left':
-      joined = df1.joinOuterLeft(df2, keySelector, keySelector, aggFn)
-      break
-    case 'outer':
-      joined = df1.joinOuter(df2, keySelector, keySelector, aggFn)
-      break
-  }
-  return joined.resetIndex()
-}
-
 /*
 Returns the lowest `listSize` & highest `listSize` values, unless there are ties for first and/or last in which case the only the tied values are returned. If there is overlap, it is removed from the highest values.
 */
@@ -101,16 +69,18 @@ export function getExtremeValues(
   fieldName: MetricId,
   listSize: number,
 ) {
-  if (data.length === 0) return { lowestValues: [], highestValues: [] }
-
-  listSize = listSize > data.length ? data.length : listSize
-
   // cleanup and sort the data
   let sortedData = data
     .filter(
       (row: HetRow) => !Number.isNaN(row[fieldName]) && row[fieldName] != null,
     )
     .sort((rowA: HetRow, rowB: HetRow) => rowA[fieldName] - rowB[fieldName]) // ascending order
+
+  // callers may hand over rows that have no rate at all, so emptiness has to be
+  // checked after the filter rather than against the raw input
+  if (sortedData.length === 0) return { lowestValues: [], highestValues: [] }
+
+  listSize = listSize > sortedData.length ? sortedData.length : listSize
 
   const lowestValue = sortedData[0][fieldName]
   const valuesTiedAtLowest = sortedData.filter(
@@ -396,6 +366,17 @@ export function appendFipsIfNeeded(
   return fipsToAppend ? `${baseId}-${fipsToAppend}` : baseId
 }
 
+// National maps render states/territories; state and county level maps render
+// counties, so they load only the relevant state's county topology. State
+// outlines are derived at render time by merging that state's counties.
+export function getGeographiesDatasetId(
+  fips: Fips,
+): DatasetId | DatasetIdWithStateFIPSCode {
+  return fips.isUsa()
+    ? GEOGRAPHIES_STATES_DATASET_ID
+    : (`${GEOGRAPHIES_COUNTIES_DATASET_ID}-${fips.getStateFipsCode()}` as DatasetIdWithStateFIPSCode)
+}
+
 export function addAcsIdToConsumed(
   metricQuery: MetricQuery,
   consumedDatasetIds: DatasetId[],
@@ -411,13 +392,21 @@ export function groupIsAll(group: DemographicGroup) {
   return group === ALL || group === ALL_W
 }
 
+// Whether every gap on a map is explained by suppression. Only for consumers that
+// must render a single verdict for the whole map, such as MissingDataAlert's
+// "due to small population sizes" copy. Anything drawn per geography should read
+// the row's own flag instead of collapsing the map to one answer.
 export function allMissingValuesAreSuppressed(
   data: MetricQueryResponse['data'],
-  metricId: MetricId,
+  metricConfig: MetricConfig,
 ) {
-  const rateIsSuppressedColumn = metricId + '_is_suppressed'
-  const rowsWithMissingRates = data.filter((row) => row[metricId] == null)
-  return rowsWithMissingRates.every(
-    (row) => row[rateIsSuppressedColumn] === true,
+  const suppressionFlag = metricConfig.suppressionFlagMetricId
+  if (!suppressionFlag) return false
+  const rowsWithMissingRates = data.filter(
+    (row) => row[metricConfig.metricId] == null,
   )
+  // an empty array would vacuously satisfy .every(), reporting suppression on a
+  // map that is missing nothing at all
+  if (rowsWithMissingRates.length === 0) return false
+  return rowsWithMissingRates.every((row) => row[suppressionFlag] === true)
 }

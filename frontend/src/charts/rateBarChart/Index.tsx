@@ -1,5 +1,5 @@
 import { max, scaleBand, scaleLinear } from 'd3'
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import type { MetricConfig } from '../../data/config/MetricConfigTypes'
 import {
   type DemographicType,
@@ -10,9 +10,13 @@ import type { HetRow } from '../../data/utils/DatasetTypes'
 import type { Fips } from '../../data/utils/Fips'
 import { useIsBreakpointAndUp } from '../../utils/hooks/useIsBreakpointAndUp'
 import { useResponsiveWidth } from '../../utils/hooks/useResponsiveWidth'
+import { HetChartHoverTooltip } from '../HetChartHoverTooltip'
 import VerticalGridlines from '../sharedBarChartPieces/VerticalGridlines'
 import XAxis from '../sharedBarChartPieces/XAxis'
 import YAxis from '../sharedBarChartPieces/YAxis'
+import { useChartTooltip } from '../useChartTooltip'
+import { getRateBarA11ySummary } from './a11yUtils'
+import type { BarChartTooltipData } from './BarChartTooltip'
 import BarChartTooltip from './BarChartTooltip'
 import {
   BAR_HEIGHT,
@@ -25,7 +29,6 @@ import {
   Y_AXIS_LABEL_HEIGHT,
 } from './constants'
 import RoundedBarsWithLabels from './RoundedBarsWithLabels'
-import { useRateChartTooltip } from './useRateChartTooltip'
 
 interface RateBarChartProps {
   data: HetRow[]
@@ -37,6 +40,7 @@ interface RateBarChartProps {
   className?: string
   useIntersectionalComparisonAlls?: boolean
   comparisonAllSubGroup?: string
+  chartTitleId?: string
 }
 
 export function RateBarChart(props: RateBarChartProps) {
@@ -45,13 +49,13 @@ export function RateBarChart(props: RateBarChartProps) {
 
   const [containerRef, width] = useResponsiveWidth()
 
-  const { tooltipData, handleTooltip, closeTooltip, handleContainerTouch } =
-    useRateChartTooltip(
-      containerRef,
-      props.metricConfig,
-      props.demographicType,
-      isTinyAndUp,
-    )
+  const {
+    tooltipData,
+    tooltipPos,
+    showTooltip,
+    hideTooltip,
+    hideTooltipDelayed,
+  } = useChartTooltip<BarChartTooltipData>()
 
   const maxLabelWidth = hasSkinnyGroupLabels(props.demographicType)
     ? MAX_LABEL_WIDTH_SMALL
@@ -66,7 +70,11 @@ export function RateBarChart(props: RateBarChartProps) {
     (d) => d[props.demographicType] === 'All',
   )
   const totalExtraSpace = allIndex !== -1 ? EXTRA_SPACE_AFTER_ALL : 0
-  const height = processedData.length * (BAR_HEIGHT + 10) + totalExtraSpace
+  // minimum height keeps innerHeight positive for single-row charts (e.g. ALLs fallback)
+  const height = Math.max(
+    processedData.length * (BAR_HEIGHT + 10) + totalExtraSpace,
+    BAR_HEIGHT + MARGIN.top + MARGIN.bottom + totalExtraSpace,
+  )
   const innerWidth = width - MARGIN.left - MARGIN.right
   const innerHeight = height - MARGIN.top - MARGIN.bottom
 
@@ -92,17 +100,42 @@ export function RateBarChart(props: RateBarChartProps) {
     return position
   }
 
+  const generatedSummaryId = useId()
+  const a11ySummary = getRateBarA11ySummary(
+    processedData,
+    props.metricConfig,
+    props.demographicType,
+  )
+  const a11ySummaryId = props.chartTitleId
+    ? `${props.chartTitleId}-summary`
+    : generatedSummaryId
+
   return (
     <div
       ref={containerRef}
-      onTouchStart={handleContainerTouch}
+      onTouchStart={(e) => {
+        if (!(e.target as Element).closest('g[role="img"]')) hideTooltip()
+      }}
       className='relative'
     >
-      <BarChartTooltip data={tooltipData} />
+      <HetChartHoverTooltip x={tooltipPos?.x ?? null} y={tooltipPos?.y ?? null}>
+        {tooltipData && <BarChartTooltip {...tooltipData} />}
+      </HetChartHoverTooltip>
+      {a11ySummary && (
+        <p id={a11ySummaryId} className='sr-only'>
+          {a11ySummary}
+        </p>
+      )}
       <svg
         width={width}
         height={height}
-        aria-label={`Bar Chart Showing ${props?.filename || 'Data'}`}
+        aria-labelledby={props.chartTitleId}
+        aria-label={
+          props.chartTitleId
+            ? undefined
+            : `Bar Chart Showing ${props?.filename || 'Data'}`
+        }
+        aria-describedby={a11ySummary ? a11ySummaryId : undefined}
       >
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           <VerticalGridlines
@@ -119,8 +152,9 @@ export function RateBarChart(props: RateBarChartProps) {
             yScale={yScale}
             getYPosition={getYPosition}
             isTinyAndUp={isTinyAndUp}
-            handleTooltip={handleTooltip}
-            closeTooltip={closeTooltip}
+            allIndex={allIndex}
+            showTooltip={showTooltip}
+            hideTooltipDelayed={hideTooltipDelayed}
           />
           <YAxis
             yScale={yScale}

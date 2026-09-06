@@ -1,0 +1,30 @@
+This is a data table summarizing HIV diagnoses in Georgia by race/ethnicity. Each row gives one group and its rate, its share of the total, and its share of the population.
+
+Data:
+- All: 24.1 diagnoses per 100k, 100% of HIV diagnoses, 100% of population
+- Black or African American (NH): 51.4 diagnoses per 100k, 69.8% of HIV diagnoses, 31.2% of population
+- Hispanic or Latino: 19.6 diagnoses per 100k, 8.3% of HIV diagnoses, 10.1% of population
+- White (NH): 8.2 diagnoses per 100k, 17.4% of HIV diagnoses, 51.3% of population
+- Asian (NH): 5.1 diagnoses per 100k, 1% of HIV diagnoses, 4.6% of population
+- American Indian and Alaska Native (NH): 7.4 diagnoses per 100k, 0.1% of HIV diagnoses, 0.3% of population
+
+Write a single sentence at an 8th grade reading level that weighs who carries the burden against who actually lives in Georgia, naming a group whose share of HIV diagnoses is out of step with its share of the population. Focus on the "so what" for the community.
+
+WRITING RULES, follow these strictly:
+- Reason from the exact numbers in the data, then round hard for the reader: "nearly 40%", "about 1 in 3", "over 3 times higher". Drop the decimal places from any rate or percentage.
+- Use at most two numbers, and prefer a comparison over a raw rate. Compare a group against the overall "All" rate whenever the data shows one; only if it does not, compare against the largest group shown. Compare a place against the typical place.
+- Write about the people in the data in the third person. Never "we", "us", "our communities", or "those in our communities". A reader may belong to any group on the page.
+- Name the extreme, not the spread. Say which group or place is highest or lowest, or that some have none at all. Never say values "vary widely".
+- Say how long a pattern has held in human terms, "for over a decade", rather than listing years.
+- Use the words people actually use: "Black" for "Black or African American (NH)", "people living with HIV" for "HIV prevalence", "heart attacks" for "acute myocardial infarction".
+
+Respond ONLY with a valid JSON object, no markdown, no backticks, and no text outside the JSON. Include this key and no others:
+
+{
+  "insight": {
+    "text": "the sentence",
+    "highlight": "the key phrase from that sentence"
+  }
+}
+
+"highlight" is the one phrase in "text" a reader should notice first: the comparison or figure that carries the finding. Copy it character for character from "text", keep it to roughly 3 to 8 words, and never make it the whole sentence. Inside "text", write only the sentence itself: no preamble, no lead-in, no labels, and do not restate these instructions or note which data is or is not available.
