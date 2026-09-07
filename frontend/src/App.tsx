@@ -85,6 +85,12 @@ const TermsOfUsePage = React.lazy(
 const DataCatalogPage = React.lazy(
   async () => await import('./pages/DataCatalog/DataCatalogPage'),
 )
+// SCRATCH PREVIEW: Charlie Oconus card preview, kept as an ongoing working
+// page. Not linked from nav — reachable only by navigating directly to
+// /oconus-preview.
+const OconusPreviewPage = React.lazy(
+  async () => await import('./pages/OconusPreview/OconusPreviewPage'),
+)
 
 autoInitGlobals()
 
@@ -123,6 +129,12 @@ export default function App() {
                   <Route
                     path={DATA_CATALOG_PAGE_LINK}
                     element={<DataCatalogPage />}
+                  />
+
+                  {/* SCRATCH PREVIEW: ongoing working page, not linked from nav */}
+                  <Route
+                    path='/oconus-preview'
+                    element={<OconusPreviewPage />}
                   />
 
                   <Route

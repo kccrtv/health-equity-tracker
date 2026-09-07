@@ -61,6 +61,9 @@ frontend/scripts/_*.ts
 # Claude Code runtime lock file
 .claude/scheduled_tasks.lock
 
+# Claude Code personal/local settings overrides
+.claude/settings.local.json
+
 # Credentials / service account keys (belt-and-suspenders; these should never land here)
 *.key.json
 *-credentials.json
