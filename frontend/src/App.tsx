@@ -83,12 +83,19 @@ const TermsOfUsePage = React.lazy(
 const DataCatalogPage = React.lazy(
   async () => await import('./pages/DataCatalog/DataCatalogPage'),
 )
-// SCRATCH PREVIEW: Charlie Oconus card preview, kept as an ongoing working
-// page. Not linked from nav — reachable only by navigating directly to
-// /oconus-preview. Rendered under CharlieShellLayout (no site chrome)
-// rather than SiteLayout — see the route below.
+// SCRATCH PREVIEW: Charlie Oconus card set, kept as an ongoing working
+// area. Not linked from the main site's nav — reachable only by navigating
+// directly to /oconus-preview. Rendered under CharlieShellLayout (no site
+// chrome), which supplies its own top bar and bottom tab bar — see the
+// nested routes below (Report/Compare/About map onto these three tabs).
 const OconusPreviewPage = React.lazy(
   async () => await import('./pages/OconusPreview/OconusPreviewPage'),
+)
+const CharlieCompareTab = React.lazy(
+  async () => await import('./pages/OconusPreview/CharlieCompareTab'),
+)
+const CharlieAboutTab = React.lazy(
+  async () => await import('./pages/OconusPreview/CharlieAboutTab'),
 )
 
 autoInitGlobals()
@@ -214,9 +221,13 @@ export default function App() {
                 <Route path='*' element={<LandingPage />} />
               </Route>
 
-              {/* Charlie's own routes: no site chrome (see CharlieShellLayout). */}
-              <Route element={<CharlieShellLayout />}>
-                <Route path='/oconus-preview' element={<OconusPreviewPage />} />
+              {/* Charlie's own routes: no site chrome, own top/bottom bars
+                  instead (see CharlieShellLayout). The three child routes
+                  are the Report/Compare/About tabs in the bottom tab bar. */}
+              <Route path='/oconus-preview' element={<CharlieShellLayout />}>
+                <Route index element={<OconusPreviewPage />} />
+                <Route path='compare' element={<CharlieCompareTab />} />
+                <Route path='about' element={<CharlieAboutTab />} />
               </Route>
             </Routes>
           </BrowserRouter>

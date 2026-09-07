@@ -12,6 +12,7 @@ interface CustomChoroplethMapOconusProps {
   demographicType?: DemographicType
   reportTitle?: string
   className?: string
+  updateFipsCallback?: (fips: Fips) => void
 }
 
 // Oconus counterpart of CustomChoroplethMap.tsx. `fips` is restricted in
@@ -21,12 +22,18 @@ interface CustomChoroplethMapOconusProps {
 // counties for a state/territory), and incarceration has no county-level
 // data for any of these six today — see scripts/coverage output — so the map
 // will legitimately show "no data" until county-level reporting exists.
+//
+// `updateFipsCallback` defaults to a no-op (matching the original demo
+// pattern) but is exposed as a prop so a caller with shared geography state
+// (e.g. CharlieShellLayout's URL-param-backed selector) can wire map
+// drill-downs back into that same state instead of them going nowhere.
 const CustomChoroplethMapOconus: React.FC<CustomChoroplethMapOconusProps> = ({
   fips = DEFAULT_OCONUS_FIPS,
   dataTypeConfig = METRIC_CONFIG['incarceration'][0],
   demographicType = 'race_and_ethnicity',
   reportTitle = `${dataTypeConfig.fullDisplayName} in ${fips.getFullDisplayName()}`,
   className,
+  updateFipsCallback = (_fips: Fips) => {},
 }) => {
   return (
     <MapCard
@@ -34,7 +41,7 @@ const CustomChoroplethMapOconus: React.FC<CustomChoroplethMapOconusProps> = ({
       demographicType={demographicType}
       fips={fips}
       reportTitle={reportTitle}
-      updateFipsCallback={(_fips: Fips) => {}}
+      updateFipsCallback={updateFipsCallback}
       trackerMode={'disparity'}
       className={className}
     />
