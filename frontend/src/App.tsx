@@ -9,10 +9,9 @@ import '@fontsource/taviraj/200.css'
 import '@fontsource/taviraj/300.css'
 import '@fontsource/taviraj/400.css'
 import '@fontsource/taviraj/500.css'
-import { CircularProgress } from '@mui/material'
 import CssBaseline from '@mui/material/CssBaseline'
 import { ThemeProvider } from '@mui/material/styles'
-import React, { Suspense, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import {
   BrowserRouter,
   Navigate,
@@ -20,13 +19,13 @@ import {
   Routes,
   useLocation,
 } from 'react-router'
+import CharlieShellLayout from './CharlieShellLayout'
 import ErrorBoundary from './ErrorBoundary'
 import { methodologyRouteConfigs } from './pages/Methodology/methodologyContent/methodologyRouteConfigs'
 import { policyRouteConfigs } from './pages/Policy/policyContent/policyRouteConfigs'
 import { wiheConfigs } from './pages/WhatIsHealthEquity/wiheComponents/WIHECardMenu'
-import Banner from './reports/ui/Banner'
+import SiteLayout from './SiteLayout'
 import SkipLink from './SkipLink'
-import HetAppBar from './styles/HetComponents/HetAppBar'
 import muiTheme from './styles/theme/muiTheme'
 import { autoInitGlobals } from './utils/globals'
 import {
@@ -72,7 +71,6 @@ const FaqsPage = React.lazy(async () => await import('./pages/FAQs/FaqsPage'))
 const ExploreDataPage = React.lazy(
   async () => await import('./pages/ExploreData/ExploreDataPage'),
 )
-const Footer = React.lazy(async () => await import('./Footer'))
 const LandingPage = React.lazy(
   async () => await import('./pages/Landing/LandingPage'),
 )
@@ -87,7 +85,8 @@ const DataCatalogPage = React.lazy(
 )
 // SCRATCH PREVIEW: Charlie Oconus card preview, kept as an ongoing working
 // page. Not linked from nav — reachable only by navigating directly to
-// /oconus-preview.
+// /oconus-preview. Rendered under CharlieShellLayout (no site chrome)
+// rather than SiteLayout — see the route below.
 const OconusPreviewPage = React.lazy(
   async () => await import('./pages/OconusPreview/OconusPreviewPage'),
 )
@@ -111,131 +110,117 @@ export default function App() {
 
         <div className='relative h-full'>
           <BrowserRouter>
-            <Banner />
-            <HetAppBar />
             <ScrollToTop />
-            <Suspense
-              fallback={
-                <main className='min-h-screen'>
-                  <CircularProgress className='mt-10' aria-label='loading' />
-                </main>
-              }
-            >
-              <main id='main' className='scroll-smooth'>
-                <Routes>
-                  <Route path={ABOUT_US_PAGE_LINK} element={<AboutUsPage />} />
-                  <Route path={ABOUT_SEED_LINK} element={<AboutSeedPage />} />
+            <Routes>
+              {/* Every existing site route, unchanged, now nested under the
+                  shared chrome layout instead of having chrome inlined here. */}
+              <Route element={<SiteLayout />}>
+                <Route path={ABOUT_US_PAGE_LINK} element={<AboutUsPage />} />
+                <Route path={ABOUT_SEED_LINK} element={<AboutSeedPage />} />
 
-                  <Route
-                    path={DATA_CATALOG_PAGE_LINK}
-                    element={<DataCatalogPage />}
-                  />
+                <Route
+                  path={DATA_CATALOG_PAGE_LINK}
+                  element={<DataCatalogPage />}
+                />
 
-                  {/* SCRATCH PREVIEW: ongoing working page, not linked from nav */}
-                  <Route
-                    path='/oconus-preview'
-                    element={<OconusPreviewPage />}
-                  />
+                <Route
+                  path={EXPLORE_DATA_PAGE_LINK}
+                  element={
+                    <ErrorBoundary fallback={<ExploreDataFallback />}>
+                      <ExploreDataPage />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route path={FULL_FAQS_LINK} element={<FaqsPage />} />
 
-                  <Route
-                    path={EXPLORE_DATA_PAGE_LINK}
-                    element={
-                      <ErrorBoundary fallback={<ExploreDataFallback />}>
-                        <ExploreDataPage />
-                      </ErrorBoundary>
-                    }
-                  />
-                  <Route path={FULL_FAQS_LINK} element={<FaqsPage />} />
+                {/* WHAT IS HEALTH EQUITY ROUTES */}
+                <Route
+                  path={WHAT_IS_HEALTH_EQUITY_PAGE_LINK}
+                  element={<WhatIsHealthEquityPage />}
+                >
+                  <>
+                    {wiheConfigs.map((route) => (
+                      <Route
+                        key={route.path}
+                        path={route.path}
+                        element={route.component}
+                      />
+                    ))}
+                  </>
+                </Route>
 
-                  {/* WHAT IS HEALTH EQUITY ROUTES */}
-                  <Route
-                    path={WHAT_IS_HEALTH_EQUITY_PAGE_LINK}
-                    element={<WhatIsHealthEquityPage />}
-                  >
-                    <>
-                      {wiheConfigs.map((route) => (
-                        <Route
-                          key={route.path}
-                          path={route.path}
-                          element={route.component}
-                        />
-                      ))}
-                    </>
-                  </Route>
+                {/* NESTED METHODOLOGY ROUTES */}
+                <Route
+                  path={METHODOLOGY_PAGE_LINK}
+                  element={<MethodologyPage />}
+                >
+                  <>
+                    {methodologyRouteConfigs.map((route) => (
+                      <Route
+                        key={route.path}
+                        path={route.path}
+                        element={route.component}
+                      />
+                    ))}
+                  </>
+                </Route>
 
-                  {/* NESTED METHODOLOGY ROUTES */}
-                  <Route
-                    path={METHODOLOGY_PAGE_LINK}
-                    element={<MethodologyPage />}
-                  >
-                    <>
-                      {methodologyRouteConfigs.map((route) => (
-                        <Route
-                          key={route.path}
-                          path={route.path}
-                          element={route.component}
-                        />
-                      ))}
-                    </>
-                  </Route>
+                {/* NESTED POLICY ROUTES */}
+                <Route
+                  path={POLICY_PAGE_LINK}
+                  element={<Navigate to={GUN_VIOLENCE_POLICY} />}
+                />
+                <Route path={POLICY_PAGE_LINK} element={<PolicyPage />}>
+                  <>
+                    {policyRouteConfigs.map((route) => (
+                      <Route
+                        key={route.path}
+                        path={route.path}
+                        element={route.component}
+                      />
+                    ))}
+                  </>
+                </Route>
 
-                  {/* NESTED POLICY ROUTES */}
-                  <Route
-                    path={POLICY_PAGE_LINK}
-                    element={<Navigate to={GUN_VIOLENCE_POLICY} />}
-                  />
-                  <Route path={POLICY_PAGE_LINK} element={<PolicyPage />}>
-                    <>
-                      {policyRouteConfigs.map((route) => (
-                        <Route
-                          key={route.path}
-                          path={route.path}
-                          element={route.component}
-                        />
-                      ))}
-                    </>
-                  </Route>
+                <Route
+                  path={TERMS_OF_USE_PAGE_LINK}
+                  element={<TermsOfUsePage />}
+                />
 
-                  <Route
-                    path={TERMS_OF_USE_PAGE_LINK}
-                    element={<TermsOfUsePage />}
-                  />
+                {/* Redirect the old URLs for possible outside links */}
+                <Route
+                  path={OLD_OURTEAM_LINK}
+                  element={<Navigate to={ABOUT_US_PAGE_LINK} />}
+                />
+                <Route
+                  path={OLD_CONTACT_LINK}
+                  element={<Navigate to={ABOUT_US_PAGE_LINK} />}
+                />
+                <Route
+                  path={OLD_TERMS_OF_SERVICE_LINK}
+                  element={<Navigate to={TERMS_OF_USE_PAGE_LINK} />}
+                />
+                <Route
+                  path={SHARE_YOUR_STORY_PATH}
+                  element={<ShareYourStoryPage />}
+                />
 
-                  {/* Redirect the old URLs for possible outside links */}
-                  <Route
-                    path={OLD_OURTEAM_LINK}
-                    element={<Navigate to={ABOUT_US_PAGE_LINK} />}
-                  />
-                  <Route
-                    path={OLD_CONTACT_LINK}
-                    element={<Navigate to={ABOUT_US_PAGE_LINK} />}
-                  />
-                  <Route
-                    path={OLD_TERMS_OF_SERVICE_LINK}
-                    element={<Navigate to={TERMS_OF_USE_PAGE_LINK} />}
-                  />
-                  <Route
-                    path={SHARE_YOUR_STORY_PATH}
-                    element={<ShareYourStoryPage />}
-                  />
+                <Route
+                  path={OLD_AGE_ADJUSTMENT_LINK}
+                  element={<Navigate to={AGE_ADJUSTMENT_LINK} />}
+                />
 
-                  <Route
-                    path={OLD_AGE_ADJUSTMENT_LINK}
-                    element={<Navigate to={AGE_ADJUSTMENT_LINK} />}
-                  />
+                {/* Catch-all route */}
+                <Route path='*' element={<LandingPage />} />
+              </Route>
 
-                  {/* Catch-all route */}
-                  <Route path='*' element={<LandingPage />} />
-                </Routes>
-              </main>
-            </Suspense>
+              {/* Charlie's own routes: no site chrome (see CharlieShellLayout). */}
+              <Route element={<CharlieShellLayout />}>
+                <Route path='/oconus-preview' element={<OconusPreviewPage />} />
+              </Route>
+            </Routes>
           </BrowserRouter>
         </div>
-        <footer>
-          <Suspense fallback={<span></span>}>
-            <Footer />
-          </Suspense>
-        </footer>
       </div>
     </ThemeProvider>
   )
