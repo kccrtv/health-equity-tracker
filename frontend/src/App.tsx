@@ -87,12 +87,15 @@ const DataCatalogPage = React.lazy(
 // area. Not linked from the main site's nav — reachable only by navigating
 // directly to /oconus-preview. Rendered under CharlieShellLayout (no site
 // chrome), which supplies its own top bar and bottom tab bar — see the
-// nested routes below (Report/Compare/About map onto these three tabs).
+// nested routes below (Report/Compare/Home/About map onto these four tabs).
 const OconusPreviewPage = React.lazy(
   async () => await import('./pages/OconusPreview/OconusPreviewPage'),
 )
 const CharlieCompareTab = React.lazy(
   async () => await import('./pages/OconusPreview/CharlieCompareTab'),
+)
+const CharlieHomeTab = React.lazy(
+  async () => await import('./pages/OconusPreview/CharlieHomeTab'),
 )
 const CharlieAboutTab = React.lazy(
   async () => await import('./pages/OconusPreview/CharlieAboutTab'),
@@ -222,11 +225,13 @@ export default function App() {
               </Route>
 
               {/* Charlie's own routes: no site chrome, own top/bottom bars
-                  instead (see CharlieShellLayout). The three child routes
-                  are the Report/Compare/About tabs in the bottom tab bar. */}
+                  instead (see CharlieShellLayout). The four child routes
+                  are the Report/Compare/Home/About tabs in the bottom tab
+                  bar. */}
               <Route path='/oconus-preview' element={<CharlieShellLayout />}>
                 <Route index element={<OconusPreviewPage />} />
                 <Route path='compare' element={<CharlieCompareTab />} />
+                <Route path='home' element={<CharlieHomeTab />} />
                 <Route path='about' element={<CharlieAboutTab />} />
               </Route>
             </Routes>

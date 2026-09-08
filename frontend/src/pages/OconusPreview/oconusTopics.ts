@@ -25,6 +25,17 @@ export const CHARLIE_TOPIC_LABELS: Record<CharlieTopicId, string> = {
   covid: 'COVID-19',
 }
 
+// Hand-written by us (not AI-generated, not pulled from HET's own
+// generateReportInsight feature — see CharlieHomeTab.tsx) — one framing
+// clause per topic so the Home tab's headline stat reads as a sentence
+// rather than a label. Written to match the tone of HET's real AI report
+// summary panel (InsightReportCard.tsx): plain, one number up front, no
+// severity language.
+export const CHARLIE_TOPIC_FRAMING: Record<CharlieTopicId, string> = {
+  incarceration: 'are in prison here',
+  covid: 'have had COVID-19 here (cumulative since 2020)',
+}
+
 const DEFAULT_TOPIC_ID: CharlieTopicId = 'incarceration'
 
 export function useCharlieTopic(): [

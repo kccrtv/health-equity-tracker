@@ -1,4 +1,5 @@
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
+import HomeIcon from '@mui/icons-material/Home'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import SummarizeIcon from '@mui/icons-material/Summarize'
 import { BottomNavigation, BottomNavigationAction } from '@mui/material'
@@ -7,6 +8,7 @@ import { useLocation, useNavigate } from 'react-router'
 const TABS = [
   { value: '', label: 'Report', icon: <SummarizeIcon /> },
   { value: 'compare', label: 'Compare', icon: <CompareArrowsIcon /> },
+  { value: 'home', label: 'Home', icon: <HomeIcon /> },
   { value: 'about', label: 'About', icon: <InfoOutlinedIcon /> },
 ] as const
 
@@ -28,7 +30,15 @@ export default function CharlieBottomTabBar() {
       showLabels
       value={currentValue}
       onChange={(_event, newValue: string) => {
-        navigate(newValue ? `${BASE_PATH}/${newValue}` : BASE_PATH)
+        // Preserve fips/topic across tab switches explicitly: react-router's
+        // navigate() with a bare path drops the current query string, and
+        // react-router's own location.search can't be trusted to still have
+        // it either, since useCharlieFipsCode/useCharlieTopic write through
+        // jotai-location, whose history.pushState calls react-router never
+        // observes. window.location.search is the one place both systems'
+        // writes are guaranteed to actually land.
+        const path = newValue ? `${BASE_PATH}/${newValue}` : BASE_PATH
+        navigate({ pathname: path, search: window.location.search })
       }}
       className='sticky bottom-0 border-divider-gray border-t'
     >
