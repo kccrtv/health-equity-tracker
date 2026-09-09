@@ -60,10 +60,13 @@ export default function CharlieComparisonOptionList({
               type='button'
               onClick={() => onSelect(option.id)}
               aria-current={isSelected}
+              // Every row gets a visible border now, not just the selected
+              // one — previously unselected rows used border-transparent,
+              // so only the selected row read as a distinct box.
               className={`flex min-h-11 w-full items-start justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2 ${
                 isSelected
                   ? 'border-alt-green bg-hover-alt-green'
-                  : 'border-transparent bg-transparent'
+                  : 'border-alt-gray bg-transparent'
               }`}
             >
               <span className='min-w-0 flex-1'>
