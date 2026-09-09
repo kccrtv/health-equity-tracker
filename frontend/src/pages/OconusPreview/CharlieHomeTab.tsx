@@ -107,11 +107,21 @@ function HomeCard({
   }
 
   // Home cards intentionally use a smaller radius than the site-wide
-  // 16px (rounded-2xl) standard applied to Report/Compare cards and the
-  // bottom sheets — the original Claude Design Home mockup uses a
-  // distinctly tighter corner for this list, not the same value.
+  // rounded-2xl (--radius-2xl, 40px) standard applied to Report/Compare
+  // cards and the bottom sheets — the original Claude Design Home mockup
+  // uses a distinctly tighter corner for this list, not the same value.
+  // Referencing the custom property directly (rather than the bare
+  // `rounded-lg` utility) is deliberate: this project's Terrazzo-generated
+  // tokens (src/styles/tokens/dimensions.css) remap Tailwind's built-in
+  // radius scale to non-default pixel values (`--radius-lg` is 16px here,
+  // `--radius-2xl` is 40px, neither matching Tailwind's own defaults), so
+  // naming the property explicitly avoids relying on a scale-name/value
+  // coincidence that doesn't actually hold in this codebase.
   return (
-    <Card className='!rounded-lg my-3 shadow-raised' elevation={0}>
+    <Card
+      className='!rounded-[var(--radius-lg)] my-3 shadow-raised'
+      elevation={0}
+    >
       <CardActionArea onClick={goToReport} className='text-left'>
         <CardContent>
           <div className='font-semibold text-alt-green'>
