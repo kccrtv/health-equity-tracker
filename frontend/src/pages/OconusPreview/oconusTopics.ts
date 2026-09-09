@@ -51,3 +51,29 @@ export function useCharlieTopic(): [
     : DEFAULT_TOPIC_ID
   return [validated, setTopicId]
 }
+
+// Third URL param, independent of `topic` and `fips` — the sentence
+// editor's "topic breakdown" segment. Both real Charlie topics already have
+// more than one entry in METRIC_CONFIG (incarceration: Prison, Jail; covid:
+// Cases, Deaths, Hospitalizations) even though CHARLIE_TOPICS above has
+// always locked to index 0 — this exposes the real, already-registered
+// variants instead of adding a fake axis. Scoped to the Report tab only,
+// same as `topic`; Compare and Home keep using CHARLIE_TOPICS's fixed
+// default and are unaffected by this selection.
+export const CHARLIE_DATA_TYPE_PARAM = 'dt'
+
+export function useCharlieDataTypeConfig(
+  topicId: CharlieTopicId,
+): [DataTypeConfig, (dataTypeId: string) => void] {
+  const variants = METRIC_CONFIG[topicId]
+  const defaultDataTypeId = variants[0].dataTypeId
+
+  const [dataTypeId, setDataTypeId] = useParamState<string>(
+    CHARLIE_DATA_TYPE_PARAM,
+    defaultDataTypeId,
+  )
+  const config =
+    variants.find((c) => c.dataTypeId === dataTypeId) ?? variants[0]
+
+  return [config, setDataTypeId]
+}
