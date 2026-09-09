@@ -2,7 +2,7 @@ import type React from 'react'
 import UnknownsMapCard from '../cards/UnknownsMapCard'
 import { METRIC_CONFIG } from '../data/config/MetricConfig'
 import type { DataTypeConfig } from '../data/config/MetricConfigTypes'
-import { UNKNOWN_RACE } from '../data/utils/Constants'
+import type { DemographicType } from '../data/query/Breakdowns'
 import type { Fips } from '../data/utils/Fips'
 import HetLazyLoader from '../styles/HetComponents/HetLazyLoader'
 import { DEFAULT_OCONUS_FIPS } from './oconusGeographies'
@@ -12,7 +12,7 @@ interface CustomUnknownMapOconusProps {
   fips?: Fips
   dataTypeConfig?: DataTypeConfig
   updateFipsCallback?: (fips: Fips) => void
-  demographicType?: string
+  demographicType?: DemographicType
   shareMetricConfig?: boolean
   reportTitle?: string
 }
@@ -21,6 +21,15 @@ interface CustomUnknownMapOconusProps {
 // hardcodes covid internally), dataTypeConfig is exposed as a prop here for
 // consistency with the rest of the Oconus card set — defaulted to
 // incarceration, the first Charlie Oconus topic.
+//
+// demographicType used to be hardcoded to 'race_and_ethnicity' in the
+// UnknownsMapCard pass-through below regardless of what was actually
+// received (and its own default, UNKNOWN_RACE = 'Unknown race', was a data
+// VALUE constant, not a real DemographicType — never actually reached
+// UnknownsMapCard either way, since the pass-through ignored it). Fixed:
+// UnknownsMapCard already handles any DemographicType correctly (it's the
+// same real, unmodified card every other Oconus map wraps), so this only
+// needed to stop overriding what it was given.
 //
 // The original passes `height={750}` to HetLazyLoader. HetLazyLoader applies
 // that as a permanent `minHeight` on its wrapper (see HetLazyLoader.tsx) —
@@ -38,7 +47,7 @@ const CustomUnknownMapOconus: React.FC<CustomUnknownMapOconusProps> = ({
   fips = DEFAULT_OCONUS_FIPS,
   dataTypeConfig = METRIC_CONFIG['incarceration'][0],
   updateFipsCallback = (_fips: Fips) => {},
-  demographicType = UNKNOWN_RACE,
+  demographicType = 'race_and_ethnicity',
   shareMetricConfig = true,
   reportTitle = `Unknown demographics for ${dataTypeConfig.fullDisplayNameInline ?? dataTypeConfig.fullDisplayName} in ${fips.getFullDisplayName()}`,
 }) => {
@@ -57,7 +66,7 @@ const CustomUnknownMapOconus: React.FC<CustomUnknownMapOconusProps> = ({
             dataTypeConfig={dataTypeConfig}
             fips={fips}
             updateFipsCallback={updateFipsCallback}
-            demographicType={'race_and_ethnicity'}
+            demographicType={demographicType}
             reportTitle={reportTitle}
           />
         )}

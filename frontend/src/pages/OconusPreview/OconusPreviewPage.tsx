@@ -128,11 +128,6 @@ export default function OconusPreviewPage() {
       id: 'unknown-demographic-map',
       label: 'Unknowns map',
       render: () => (
-        // demographicType is accepted here but not honored internally —
-        // CustomUnknownMapOconus hardcodes race_and_ethnicity for the real
-        // UnknownsMapCard regardless of what's passed. Pre-existing, not
-        // introduced by this change; passing it through anyway so the prop
-        // is correct if that's ever fixed.
         <CustomUnknownMapOconus
           fips={fips}
           dataTypeConfig={dataTypeConfig}
