@@ -156,7 +156,11 @@ export default function OconusPreviewPage() {
                 return null
               }
               return (
-                <div className='w-full' id={id} key={id}>
+                <div
+                  className='w-full [&_article]:rounded-2xl'
+                  id={id}
+                  key={id}
+                >
                   <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
                     {label}
                   </h2>
@@ -165,7 +169,7 @@ export default function OconusPreviewPage() {
               )
             })}
             {allCollapsibleEmpty && (
-              <div className='m-2 rounded-sm bg-alt-white p-4 text-left shadow-raised'>
+              <div className='m-2 rounded-2xl bg-alt-white p-4 text-left shadow-raised'>
                 <h2 className='m-0 font-semibold text-lg'>
                   No data available for these sections
                 </h2>

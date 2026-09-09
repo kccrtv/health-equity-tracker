@@ -1,3 +1,4 @@
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { AppBar, Chip, Toolbar } from '@mui/material'
 import { useState } from 'react'
 import CharlieBottomSheet from './CharlieBottomSheet'
@@ -45,7 +46,12 @@ export default function CharlieTopBar() {
             </div>
           </div>
           <Chip
-            label={selectedFips.getDisplayName()}
+            label={
+              <span className='flex items-center gap-0.5'>
+                {selectedFips.getDisplayName()}
+                <ExpandMoreIcon fontSize='small' />
+              </span>
+            }
             onClick={() => setPickerOpen(true)}
             className='bg-alt-white text-alt-green'
             aria-label='Change geography'

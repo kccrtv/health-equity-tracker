@@ -96,17 +96,23 @@ export default function CharlieCompareTab() {
     <div className='flex'>
       <div className='w-full md:w-10/12'>
         <div className='flex w-full flex-col content-center'>
-          <div className='m-2 rounded-sm bg-alt-white p-4 text-left shadow-raised'>
+          <div className='m-2 rounded-2xl bg-alt-white p-4 text-left shadow-raised'>
             <div className='font-semibold text-alt-green text-smallest uppercase tracking-wide'>
               Comparing · {topicLabel}
             </div>
-            <div className='mt-1 font-semibold text-lg'>
-              {primaryFips.getDisplayName()} vs {compareFips.getDisplayName()}
+            <div className='mt-1 flex flex-wrap items-baseline gap-x-2 text-lg'>
+              <span className='font-bold text-alt-green'>
+                {primaryFips.getDisplayName()}
+              </span>
+              <span className='font-normal text-alt-dark text-small'>vs</span>
+              <span className='font-bold text-alt-green'>
+                {compareFips.getDisplayName()}
+              </span>
             </div>
             <Button
               size='small'
               variant='outlined'
-              className='mt-3 normal-case'
+              className='!rounded-full mt-3 px-4 py-1.5 normal-case'
               onClick={() => setSheetOpen(true)}
             >
               Change comparison
@@ -114,7 +120,7 @@ export default function CharlieCompareTab() {
           </div>
 
           {SECTIONS.map(({ id, label, Component }) => (
-            <div className='w-full' key={id}>
+            <div className='w-full [&_article]:rounded-2xl' key={id}>
               <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
                 {label} — {primaryFips.getDisplayName()}
               </h2>

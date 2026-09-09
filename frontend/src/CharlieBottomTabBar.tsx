@@ -6,9 +6,9 @@ import { BottomNavigation, BottomNavigationAction } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router'
 
 const TABS = [
+  { value: 'home', label: 'Home', icon: <HomeIcon /> },
   { value: '', label: 'Report', icon: <SummarizeIcon /> },
   { value: 'compare', label: 'Compare', icon: <CompareArrowsIcon /> },
-  { value: 'home', label: 'Home', icon: <HomeIcon /> },
   { value: 'about', label: 'About', icon: <InfoOutlinedIcon /> },
 ] as const
 

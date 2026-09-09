@@ -51,8 +51,8 @@ export default function CharlieHomeTab() {
   return (
     <div className='flex'>
       <div className='w-full md:w-10/12'>
-        <div className='flex w-full flex-col content-center'>
-          <h2 className='m-2 text-left font-semibold text-lg'>
+        <div className='flex w-full flex-col content-center px-4'>
+          <h2 className='mt-2 mb-2 text-left font-semibold text-lg'>
             {topicLabel} across Oconus
           </h2>
           {OCONUS_FIPS_CODES.map((code) => (
@@ -107,7 +107,7 @@ function HomeCard({
   }
 
   return (
-    <Card className='m-2 shadow-raised' elevation={0}>
+    <Card className='!rounded-2xl my-2 shadow-raised' elevation={0}>
       <CardActionArea onClick={goToReport} className='text-left'>
         <CardContent>
           <div className='font-semibold text-alt-green'>

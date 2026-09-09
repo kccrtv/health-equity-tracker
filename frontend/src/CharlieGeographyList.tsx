@@ -1,4 +1,3 @@
-import CheckIcon from '@mui/icons-material/Check'
 import type { OconusFipsCode } from './reports/oconusGeographies'
 import { OCONUS_GEOGRAPHIES } from './reports/oconusGeographies'
 
@@ -15,10 +14,15 @@ interface CharlieGeographyListProps {
   }
 }
 
-// Reusable vertical list of tappable geography rows with the current
-// selection indicated by a checkmark, shared by the top bar's plain
-// picker (CharlieTopBar.tsx) and Compare's annotated "Compare with" list
-// (CharlieCompareTab.tsx) via the optional getStatus prop.
+// Reusable vertical list of tappable geography rows, shared by the top
+// bar's plain picker (CharlieTopBar.tsx) and Compare's annotated "Compare
+// with" list (CharlieCompareTab.tsx) via the optional getStatus prop.
+// Selection is shown as a filled/outlined row (not a checkmark). A muted
+// row (status level other than 'full') gets a tinted background — still
+// fully tappable, never disabled — same honesty-over-hiding pattern used
+// throughout the rest of the app. Selection styling takes precedence over
+// the muted tint when a row is both (the current choice matters more than
+// its own sparseness).
 export default function CharlieGeographyList({
   codes,
   selectedCode,
@@ -31,31 +35,28 @@ export default function CharlieGeographyList({
         const geo = OCONUS_GEOGRAPHIES[code]
         const isSelected = code === selectedCode
         const status = getStatus?.(code)
-        // Muted, not disabled: a sparse pairing is still a real choice, same
-        // honesty-over-hiding pattern used throughout the rest of the app.
         const muted = status && status.level !== 'full'
 
+        const rowClassName = isSelected
+          ? 'border-alt-green bg-hover-alt-green'
+          : muted
+            ? 'border-transparent bg-bg-color'
+            : 'border-transparent bg-transparent'
+
         return (
-          <li key={code}>
+          <li key={code} className='mb-2'>
             <button
               type='button'
               onClick={() => onSelect(code)}
-              className={`flex w-full items-center justify-between gap-2 border-0 border-divider-gray border-b bg-transparent py-3 text-left ${
-                muted ? 'text-alt-dark' : 'text-alt-black'
+              className={`w-full rounded-md border py-3 pr-3 pl-4 text-left ${rowClassName} ${
+                muted && !isSelected ? 'text-alt-dark' : 'text-alt-black'
               }`}
             >
-              <span>
-                <span className='block font-medium'>
-                  {geo.getDisplayName()}
+              <span className='block font-medium'>{geo.getDisplayName()}</span>
+              {status && (
+                <span className='block text-alt-dark text-smallest'>
+                  {status.label}
                 </span>
-                {status && (
-                  <span className='block text-alt-dark text-smallest'>
-                    {status.label}
-                  </span>
-                )}
-              </span>
-              {isSelected && (
-                <CheckIcon fontSize='small' className='text-alt-green' />
               )}
             </button>
           </li>
