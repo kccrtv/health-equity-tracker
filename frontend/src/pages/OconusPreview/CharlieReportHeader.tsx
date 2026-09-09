@@ -1,4 +1,5 @@
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import EditIcon from '@mui/icons-material/Edit'
 import { useState } from 'react'
@@ -72,18 +73,44 @@ export default function CharlieReportHeader({
     })
   }
 
+  // FOCUS_VISIBLE_CLASSES restores a visible keyboard-focus ring on Charlie's
+  // own plain <button> elements — confirmed live (real Tab keypress, not a
+  // programmatic .focus() call, which doesn't trigger :focus-visible the
+  // same way) that these had zero visible focus indicator: no outline, no
+  // box-shadow, no background change.
+  const FOCUS_VISIBLE_CLASSES =
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
+
   return (
     <div className='m-2 text-left'>
       <button
         type='button'
         onClick={() => setOpenSheet('editor')}
-        className='flex w-full cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-left'
+        aria-label={`Edit report: ${summary}`}
+        // min-h-11 (44px): the whole row measured 24px tall live — well
+        // under the 44×44px touch-target minimum.
+        className={`flex min-h-11 w-full cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-left ${FOCUS_VISIBLE_CLASSES}`}
       >
-        <span className='min-w-0 flex-1 truncate font-semibold text-base'>
+        {/* index.css's global h1 rule (34px, 2rem/1rem top/bottom padding —
+            styled for full-page titles) isn't what this compact header
+            wants; p-0 neutralizes the padding half of it since text-base
+            already overrides the font-size half. */}
+        <h1 className='m-0 min-w-0 flex-1 truncate p-0 font-semibold text-base'>
           {summary}
-        </span>
-        <EditIcon fontSize='small' className='shrink-0 text-alt-dark' />
+        </h1>
+        <EditIcon
+          fontSize='small'
+          className='shrink-0 text-alt-dark'
+          aria-hidden='true'
+        />
       </button>
+      {/* Announces geography/topic/demographic changes to assistive tech —
+          this text already updates live with every one of those changes, so
+          making it an aria-live region needs no separate change-detection
+          logic. Visually hidden; the same summary is already shown above. */}
+      <div aria-live='polite' className='sr-only'>
+        {summary}
+      </div>
 
       <div className='mt-2 flex items-center justify-end gap-4'>
         <button
@@ -91,17 +118,20 @@ export default function CharlieReportHeader({
           onClick={goToCompare}
           aria-label='Compare — leaves this page for the Compare tab'
           title='Compare'
-          className='flex cursor-pointer items-center border-0 bg-transparent p-0 text-alt-green'
+          // min-h-11/min-w-11: measured live at 20×16px, the smallest
+          // control found in the whole audit — icon-only controls need the
+          // hit area expanded without enlarging the icon itself.
+          className={`flex min-h-11 min-w-11 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
         >
-          <ArrowOutwardIcon fontSize='small' />
+          <ArrowOutwardIcon fontSize='small' aria-hidden='true' />
         </button>
         <button
           type='button'
           onClick={() => setOpenSheet('jumpTo')}
-          className='flex cursor-pointer items-center border-0 bg-transparent p-0 font-medium text-alt-green text-small'
+          className={`flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-medium text-alt-green text-small ${FOCUS_VISIBLE_CLASSES}`}
         >
           Jump to
-          <ChevronRightIcon fontSize='small' />
+          <ChevronRightIcon fontSize='small' aria-hidden='true' />
         </button>
       </div>
 
@@ -127,24 +157,35 @@ export default function CharlieReportHeader({
         ariaLabel='Choose a topic'
       >
         <ul className='m-0 list-none p-0 text-left'>
-          {CHARLIE_TOPIC_IDS.map((id) => (
-            <li key={id} className='mb-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  onTopicChange(id, METRIC_CONFIG[id][0].dataTypeId)
-                  setOpenSheet('editor')
-                }}
-                className={`w-full cursor-pointer rounded-md border py-3 pr-3 pl-4 text-left ${
-                  id === topicId
-                    ? 'border-alt-green bg-hover-alt-green'
-                    : 'border-transparent bg-transparent'
-                }`}
-              >
-                {CHARLIE_TOPIC_LABELS[id]}
-              </button>
-            </li>
-          ))}
+          {CHARLIE_TOPIC_IDS.map((id) => {
+            const isSelected = id === topicId
+            return (
+              <li key={id} className='mb-2'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    onTopicChange(id, METRIC_CONFIG[id][0].dataTypeId)
+                    setOpenSheet('editor')
+                  }}
+                  aria-current={isSelected}
+                  className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left ${
+                    isSelected
+                      ? 'border-alt-green bg-hover-alt-green'
+                      : 'border-transparent bg-transparent'
+                  } ${FOCUS_VISIBLE_CLASSES}`}
+                >
+                  <span>{CHARLIE_TOPIC_LABELS[id]}</span>
+                  {isSelected && (
+                    <CheckCircleIcon
+                      fontSize='small'
+                      className='shrink-0 text-alt-green'
+                      aria-hidden='true'
+                    />
+                  )}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </CharlieBottomSheet>
 
@@ -155,24 +196,35 @@ export default function CharlieReportHeader({
         ariaLabel='Choose a topic breakdown'
       >
         <ul className='m-0 list-none p-0 text-left'>
-          {subItems.map((config) => (
-            <li key={config.dataTypeId} className='mb-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  onDataTypeChange(config.dataTypeId)
-                  setOpenSheet('editor')
-                }}
-                className={`w-full cursor-pointer rounded-md border py-3 pr-3 pl-4 text-left ${
-                  config.dataTypeId === dataTypeConfig.dataTypeId
-                    ? 'border-alt-green bg-hover-alt-green'
-                    : 'border-transparent bg-transparent'
-                }`}
-              >
-                {config.dataTypeShortLabel ?? config.dataTypeId}
-              </button>
-            </li>
-          ))}
+          {subItems.map((config) => {
+            const isSelected = config.dataTypeId === dataTypeConfig.dataTypeId
+            return (
+              <li key={config.dataTypeId} className='mb-2'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    onDataTypeChange(config.dataTypeId)
+                    setOpenSheet('editor')
+                  }}
+                  aria-current={isSelected}
+                  className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left ${
+                    isSelected
+                      ? 'border-alt-green bg-hover-alt-green'
+                      : 'border-transparent bg-transparent'
+                  } ${FOCUS_VISIBLE_CLASSES}`}
+                >
+                  <span>{config.dataTypeShortLabel ?? config.dataTypeId}</span>
+                  {isSelected && (
+                    <CheckCircleIcon
+                      fontSize='small'
+                      className='shrink-0 text-alt-green'
+                      aria-hidden='true'
+                    />
+                  )}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </CharlieBottomSheet>
 

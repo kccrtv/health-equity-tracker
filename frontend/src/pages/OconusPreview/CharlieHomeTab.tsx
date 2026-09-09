@@ -52,9 +52,11 @@ export default function CharlieHomeTab() {
     <div className='flex'>
       <div className='w-full md:w-10/12'>
         <div className='flex w-full flex-col content-center px-4 py-2'>
-          <h2 className='mt-2 mb-4 text-left font-semibold text-lg'>
+          {/* p-0: index.css's global h1 rule adds 2rem/1rem top/bottom
+              padding sized for full-page titles, not this compact heading. */}
+          <h1 className='mt-2 mb-4 p-0 text-left font-semibold text-lg'>
             {topicLabel} across Oconus
-          </h2>
+          </h1>
           {OCONUS_FIPS_CODES.map((code) => (
             <HomeCard
               key={code}

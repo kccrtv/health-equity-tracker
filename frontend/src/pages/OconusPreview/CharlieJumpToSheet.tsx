@@ -131,9 +131,13 @@ export default function CharlieJumpToSheet({
                     <button
                       type='button'
                       onClick={() => handleJump(id)}
-                      className='flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent py-3 text-left text-alt-black'
+                      className='flex min-h-11 w-full cursor-pointer items-center gap-3 border-0 bg-transparent py-3 text-left text-alt-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
                     >
-                      <Icon fontSize='small' className='text-alt-dark' />
+                      <Icon
+                        fontSize='small'
+                        className='text-alt-dark'
+                        aria-hidden='true'
+                      />
                       <span>{label}</span>
                     </button>
                   </li>

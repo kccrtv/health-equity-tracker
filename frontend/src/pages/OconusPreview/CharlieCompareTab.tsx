@@ -202,19 +202,26 @@ export default function CharlieCompareTab() {
       <div className='w-full md:w-10/12'>
         <div className='flex w-full flex-col content-center'>
           <div className='m-2 rounded-2xl bg-alt-white p-4 text-left shadow-raised'>
-            <div className='font-semibold text-alt-green text-smallest uppercase tracking-wide'>
+            <p className='m-0 font-semibold text-alt-green text-smallest uppercase tracking-wide'>
               Comparing
-            </div>
-            <div className='mt-1 flex flex-wrap items-baseline gap-x-2 text-lg'>
+            </p>
+            {/* p-0: index.css's global h1 rule adds 2rem/1rem top/bottom
+                padding sized for full-page titles, not this compact card. */}
+            <h1 className='m-0 mt-1 flex flex-wrap items-baseline gap-x-2 p-0 text-lg'>
               <span className='font-bold text-alt-green'>{fixedAxisCaps},</span>
               <span className='font-bold text-alt-green'>{primaryLabel}</span>
               <span className='font-normal text-alt-dark text-small'>vs</span>
               <span className='font-bold text-alt-green'>{secondaryLabel}</span>
+            </h1>
+            {/* Announces mode/geography/topic switches to assistive tech —
+                this text already updates with every one of those changes. */}
+            <div aria-live='polite' className='sr-only'>
+              {fixedAxisCaps}, {primaryLabel} vs {secondaryLabel}
             </div>
             <Button
               size='small'
               variant='outlined'
-              className='!rounded-full mt-3 px-4 py-1.5 normal-case'
+              className='!min-h-11 !rounded-full mt-3 px-4 py-1.5 normal-case'
               onClick={() => setSheetOpen(true)}
             >
               Change comparison

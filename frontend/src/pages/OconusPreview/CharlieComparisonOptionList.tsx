@@ -59,7 +59,8 @@ export default function CharlieComparisonOptionList({
             <button
               type='button'
               onClick={() => onSelect(option.id)}
-              className={`flex min-h-11 w-full items-start justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left ${
+              aria-current={isSelected}
+              className={`flex min-h-11 w-full items-start justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2 ${
                 isSelected
                   ? 'border-alt-green bg-hover-alt-green'
                   : 'border-transparent bg-transparent'
@@ -100,9 +101,12 @@ export default function CharlieComparisonOptionList({
                 <Link
                   to={ABOUT_TAB_PATH}
                   aria-label={`Learn more about missing ${unavailableLabels} data for ${option.label}`}
-                  className='inline-flex shrink-0 items-center justify-center text-alt-dark'
+                  // min-h-11/min-w-11: an inline icon-only link like this
+                  // would otherwise render far under the 44px touch-target
+                  // minimum (just the icon's own ~14px box).
+                  className='inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center text-alt-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
                 >
-                  <InfoOutlinedIcon fontSize='inherit' />
+                  <InfoOutlinedIcon fontSize='inherit' aria-hidden='true' />
                 </Link>
               </div>
             )}

@@ -81,30 +81,32 @@ export default function CharlieAboutTab() {
     <div className='flex'>
       <div className='w-full md:w-10/12'>
         <div className='flex w-full flex-col content-center px-4 py-2'>
-          <h2 className='mt-2 mb-1 text-left font-semibold text-lg'>
+          {/* p-0: index.css's global h1 rule adds 2rem/1rem top/bottom
+              padding sized for full-page titles, not this compact heading. */}
+          <h1 className='mt-2 mb-1 p-0 text-left font-semibold text-lg'>
             Resources
-          </h2>
+          </h1>
           <p className='m-0 mb-4 text-alt-dark text-small'>
             What this page's claims are built on — and what's still an open gap.
           </p>
 
-          <h3 className='mx-2 mt-4 mb-0 text-left font-semibold text-alt-green text-smallest uppercase tracking-wide'>
+          <h2 className='mx-2 mt-4 mb-0 text-left font-semibold text-alt-green text-smallest uppercase tracking-wide'>
             Sourced
-          </h3>
+          </h2>
           {SOURCED_RESOURCES.map((resource) => (
             <SourcedCard key={resource.id} resource={resource} />
           ))}
 
-          <h3 className='mx-2 mt-6 mb-0 text-left font-semibold text-report-alert text-smallest uppercase tracking-wide'>
+          <h2 className='mx-2 mt-6 mb-0 text-left font-semibold text-report-alert text-smallest uppercase tracking-wide'>
             Acknowledged gap
-          </h3>
+          </h2>
           {ACKNOWLEDGED_GAP_RESOURCES.map((resource) => (
             <AcknowledgedGapCard key={resource.id} resource={resource} />
           ))}
 
-          <h3 className='mx-2 mt-6 mb-0 text-left font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
+          <h2 className='mx-2 mt-6 mb-0 text-left font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
             Get involved
-          </h3>
+          </h2>
           {GET_INVOLVED_RESOURCES.map((resource) => (
             <GetInvolvedCard key={resource.id} resource={resource} />
           ))}

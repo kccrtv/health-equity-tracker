@@ -52,7 +52,8 @@ export default function CharlieGeographyList({
             <button
               type='button'
               onClick={() => onSelect(code)}
-              className={`flex w-full items-start justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left ${rowClassName} ${
+              aria-current={isSelected}
+              className={`flex min-h-11 w-full items-start justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2 ${rowClassName} ${
                 muted && !isSelected ? 'text-alt-dark' : 'text-alt-black'
               }`}
             >

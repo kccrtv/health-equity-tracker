@@ -25,11 +25,23 @@ interface CharlieSentenceEditorSheetProps {
   onSelectDemographic: (type: DemographicType) => void
 }
 
+// Shared focus-visible fix — see CharlieReportHeader.tsx for the same
+// finding (confirmed live via a real keyboard Tab, not a programmatic
+// .focus() call: zero visible indicator on Charlie's plain buttons).
+const FOCUS_VISIBLE_CLASSES =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
+
 // A tappable word/phrase inside the sentence — same visual language as the
 // real MadLib's pill-style TopicSelector/LocationSelector buttons (green
 // pill background, chevron-free here since the segment itself communicates
 // tappability via color+underline rather than an icon, keeping the sentence
 // readable as a sentence rather than a row of buttons).
+//
+// Deliberately NOT resized to the 44×44px touch-target minimum: WCAG 2.5.8
+// explicitly exempts inline targets "in a sentence or [whose] size is
+// otherwise constrained by the line-height of non-target text" — enlarging
+// these would break the running sentence they're part of. Still gets a
+// visible focus ring since that's a separate (unexempted) requirement.
 function SentenceSegment({
   label,
   onClick,
@@ -41,7 +53,7 @@ function SentenceSegment({
     <button
       type='button'
       onClick={onClick}
-      className='mx-1 cursor-pointer rounded-md border-0 bg-hover-alt-green px-1.5 py-0.5 font-semibold text-alt-green'
+      className={`mx-1 cursor-pointer rounded-md border-0 bg-hover-alt-green px-1.5 py-0.5 font-semibold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
     >
       {label}
     </button>
@@ -74,7 +86,8 @@ export default function CharlieSentenceEditorSheet({
         <button
           type='button'
           onClick={onClose}
-          className='cursor-pointer border-0 bg-transparent p-0 font-semibold text-alt-green'
+          // min-h-11: measured live at 28px tall — under the 44px minimum.
+          className={`flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-semibold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
         >
           Save →
         </button>
@@ -121,7 +134,12 @@ export default function CharlieSentenceEditorSheet({
                 key={type}
                 type='button'
                 onClick={() => onSelectDemographic(type)}
-                className='cursor-pointer rounded-full border px-3 py-1 text-small'
+                aria-current={selected}
+                // min-h-11: measured live at 31px tall — under the 44px
+                // minimum. Not inline text (a standalone row of choices
+                // below the sentence), so the WCAG inline exception that
+                // covers SentenceSegment above doesn't apply here.
+                className={`flex min-h-11 cursor-pointer items-center rounded-full border px-3 py-1 text-small ${FOCUS_VISIBLE_CLASSES}`}
                 style={
                   selected
                     ? {

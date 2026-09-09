@@ -49,11 +49,14 @@ export default function CharlieTopBar() {
             label={
               <span className='flex items-center gap-0.5'>
                 {selectedFips.getDisplayName()}
-                <ExpandMoreIcon fontSize='small' />
+                <ExpandMoreIcon fontSize='small' aria-hidden='true' />
               </span>
             }
             onClick={() => setPickerOpen(true)}
-            className='bg-alt-white text-alt-green'
+            // !min-h-11: measured live at 32px tall — under the 44px
+            // touch-target minimum. MUI Chip's own height is normally fixed
+            // via its size variant, hence the !important.
+            className='!min-h-11 bg-alt-white text-alt-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
             aria-label='Change geography'
           />
         </Toolbar>

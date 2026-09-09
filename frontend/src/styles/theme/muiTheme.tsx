@@ -245,6 +245,17 @@ const muiTheme = extendTheme({
           padding: '11px !important',
           backgroundColor: '#fff !important',
           textTransform: 'none',
+          // The decorative `outline` above is unconditional and !important,
+          // so it permanently wins over the browser's own :focus-visible
+          // outline — every ToggleButton (Charlie's Places/Topics and
+          // Topic toggles included) was keyboard-focusable with zero visible
+          // indicator. This restores one on top of the decorative outline
+          // specifically when focus-visible is active, without touching the
+          // decorative look the rest of the time.
+          '&:focus-visible': {
+            outline: `2px solid ${colors.altGreen} !important`,
+            outlineOffset: '2px',
+          },
           '&.Mui-selected': {
             color: colors.altGreen,
             backgroundColor: `${colors.toggleColor} !important`,

@@ -1,6 +1,7 @@
 import CloseIcon from '@mui/icons-material/Close'
 import { Drawer, IconButton } from '@mui/material'
 import type { ReactNode } from 'react'
+import { usePrefersReducedMotion } from './utils/hooks/usePrefersReducedMotion'
 
 interface CharlieBottomSheetProps {
   open: boolean
@@ -29,11 +30,17 @@ export default function CharlieBottomSheet({
   ariaLabel,
   children,
 }: CharlieBottomSheetProps) {
+  const prefersReducedMotion = usePrefersReducedMotion()
+
   return (
     <Drawer
       anchor='bottom'
       open={open}
       onClose={onClose}
+      // MUI's default Slide transition ignores prefers-reduced-motion —
+      // reusing the same real hook the app's own JumpToSelect/TableOfContents
+      // already use for this, rather than a Charlie-only mechanism.
+      transitionDuration={prefersReducedMotion ? 0 : undefined}
       slotProps={{
         paper: {
           style: {
@@ -55,7 +62,15 @@ export default function CharlieBottomSheet({
             <p className='m-0 mt-1 text-alt-dark text-small'>{subtitle}</p>
           )}
         </div>
-        <IconButton onClick={onClose} aria-label='close' size='small'>
+        <IconButton
+          onClick={onClose}
+          aria-label='close'
+          // Default MUI size='small' IconButton renders well under 44×44px
+          // (measured live at 30×26) — dropping the small size and forcing
+          // an explicit minimum gets it to a real touch target without
+          // enlarging the icon itself.
+          className='!min-h-11 !min-w-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
+        >
           <CloseIcon fontSize='small' />
         </IconButton>
       </div>
