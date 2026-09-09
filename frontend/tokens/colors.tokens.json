@@ -18,6 +18,7 @@
     "groupGreen":       { "$value": "#7db640" },
     "groupYellowGreen": { "$value": "#b9ce3a" },
     "hoverAltGreen":    { "$value": "rgba(11, 82, 64, 0.08)" },
+    "altGreenTint":     { "$value": "#dbeee0" },
     "methodologyGreen": { "$value": "#b5c7c2" },
     "toggleColor":      { "$value": "#e1e9e7" },
 

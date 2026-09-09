@@ -16,7 +16,10 @@ import CharlieJumpToSheet from './CharlieJumpToSheet'
 import CharlieLocationSearchSheet from './CharlieLocationSearchSheet'
 import CharlieSentenceEditorSheet from './CharlieSentenceEditorSheet'
 import type { CharlieCardId } from './charlieCardAvailability'
-import { getCharlieDemographicCascade } from './charlieDemographic'
+import {
+  CHARLIE_DEMOGRAPHIC_LABELS,
+  getCharlieDemographicCascade,
+} from './charlieDemographic'
 import {
   CHARLIE_TOPIC_IDS,
   CHARLIE_TOPIC_LABELS,
@@ -25,7 +28,14 @@ import {
 
 const REPORT_BASE_PATH = '/oconus-preview'
 
-type OpenSheet = 'none' | 'editor' | 'topic' | 'subItem' | 'place' | 'jumpTo'
+type OpenSheet =
+  | 'none'
+  | 'editor'
+  | 'topic'
+  | 'subItem'
+  | 'place'
+  | 'demographic'
+  | 'jumpTo'
 
 interface CharlieReportHeaderProps {
   topicId: CharlieTopicId
@@ -154,7 +164,7 @@ export default function CharlieReportHeader({
         onOpenTopicSheet={() => setOpenSheet('topic')}
         onOpenSubItemSheet={() => setOpenSheet('subItem')}
         onOpenPlaceSheet={() => setOpenSheet('place')}
-        onSelectDemographic={onDemographicChange}
+        onOpenDemographicSheet={() => setOpenSheet('demographic')}
       />
 
       <CharlieBottomSheet
@@ -221,6 +231,45 @@ export default function CharlieReportHeader({
                   } ${FOCUS_VISIBLE_CLASSES}`}
                 >
                   <span>{config.dataTypeShortLabel ?? config.dataTypeId}</span>
+                  {isSelected && (
+                    <CheckCircleIcon
+                      fontSize='small'
+                      className='shrink-0 text-alt-green'
+                      aria-hidden='true'
+                    />
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </CharlieBottomSheet>
+
+      <CharlieBottomSheet
+        open={openSheet === 'demographic'}
+        onClose={() => setOpenSheet('editor')}
+        title='Demographic'
+        ariaLabel='Choose a demographic breakdown'
+      >
+        <ul className='m-0 list-none p-0 text-left'>
+          {cascade.enabled.map((type) => {
+            const isSelected = type === demographicType
+            return (
+              <li key={type} className='mb-2'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    onDemographicChange(type)
+                    setOpenSheet('editor')
+                  }}
+                  aria-current={isSelected}
+                  className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-md border py-3 pr-3 pl-4 text-left ${
+                    isSelected
+                      ? 'border-alt-green bg-hover-alt-green'
+                      : 'border-transparent bg-transparent'
+                  } ${FOCUS_VISIBLE_CLASSES}`}
+                >
+                  <span>{CHARLIE_DEMOGRAPHIC_LABELS[type]}</span>
                   {isSelected && (
                     <CheckCircleIcon
                       fontSize='small'

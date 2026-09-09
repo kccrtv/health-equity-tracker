@@ -1,9 +1,7 @@
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import CharlieBottomSheet from '../../CharlieBottomSheet'
 import type { DataTypeConfig } from '../../data/config/MetricConfigTypes'
 import type { DemographicType } from '../../data/query/Breakdowns'
 import type { Fips } from '../../data/utils/Fips'
-import { colors } from '../../styles/tokens/colors'
 import {
   CHARLIE_DEMOGRAPHIC_LABELS,
   type CharlieDemographicCascade,
@@ -23,7 +21,7 @@ interface CharlieSentenceEditorSheetProps {
   onOpenTopicSheet: () => void
   onOpenSubItemSheet: () => void
   onOpenPlaceSheet: () => void
-  onSelectDemographic: (type: DemographicType) => void
+  onOpenDemographicSheet: () => void
 }
 
 // Shared focus-visible fix — see CharlieReportHeader.tsx for the same
@@ -35,7 +33,11 @@ const FOCUS_VISIBLE_CLASSES =
 // A tappable word/phrase inside the sentence — pill background plus a
 // down-caret and an underline, both signaling "this opens a picker" the
 // way the real MadLib's own selector buttons do, and a small caption below
-// naming which axis it edits (per the reference concept).
+// naming which axis it edits (per the reference concept). This is the ONE
+// shared component for every blank (Topic, Topic breakdown, Place,
+// Demographic) — none of them may special-case their own styling, since a
+// prior version hand-rolled the Demographic blank separately and it silently
+// drifted to plain text with no chip, caret, or tap target.
 //
 // Deliberately NOT resized to the 44×44px touch-target minimum: WCAG 2.5.8
 // explicitly exempts inline targets "in a sentence or [whose] size is
@@ -61,10 +63,12 @@ function SentenceSegment({
       <button
         type='button'
         onClick={onClick}
-        className={`flex cursor-pointer items-center gap-0.5 rounded-md border-0 border-alt-green border-b-2 bg-hover-alt-green px-1.5 py-0.5 font-semibold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
+        className={`inline-flex cursor-pointer items-center whitespace-nowrap rounded-t-md border-0 border-alt-green border-b-[1.5px] bg-alt-green-tint px-2.5 font-bold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
       >
         {label}
-        <ArrowDropDownIcon fontSize='small' aria-hidden='true' />
+        <span className='ml-1.5' aria-hidden='true'>
+          ▾
+        </span>
       </button>
       <span className='mt-0.5 text-alt-dark text-smallest uppercase tracking-wide'>
         ({caption})
@@ -85,7 +89,7 @@ export default function CharlieSentenceEditorSheet({
   onOpenTopicSheet,
   onOpenSubItemSheet,
   onOpenPlaceSheet,
-  onSelectDemographic,
+  onOpenDemographicSheet,
 }: CharlieSentenceEditorSheetProps) {
   const subItemLabel =
     dataTypeConfig.dataTypeShortLabel ?? dataTypeConfig.dataTypeId
@@ -142,59 +146,31 @@ export default function CharlieSentenceEditorSheet({
             onClick={onOpenPlaceSheet}
           />{' '}
           by{' '}
-          {/* Not a SentenceSegment: it has no caret and doesn't open a
-              sheet of its own — the pill row directly below is already its
-              picker. Still gets the same caption treatment (per the
-              reference concept's 4 captions), just without the
-              tappable-pill affordances that would promise a dropdown that
-              isn't there. */}
-          <span className='mx-1 inline-flex flex-col items-center align-bottom'>
-            <span className='font-semibold text-alt-green'>
-              {demographicLabel}
-            </span>
-            <span className='mt-0.5 text-alt-dark text-smallest uppercase tracking-wide'>
-              (Demographic)
-            </span>
-          </span>
+          <SentenceSegment
+            label={demographicLabel}
+            caption='Demographic'
+            onClick={onOpenDemographicSheet}
+          />
         </p>
 
+        {/* Informational only — this strip demonstrates that the available
+            breakdowns change with topic/sub-item, but it is not itself a
+            control: it has no selected/highlighted state, isn't tappable,
+            and never sets the demographic value. The sentence's Demographic
+            chip above is the only thing that does that, via its own sheet. */}
         <p className='mt-4 mb-2 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
           {cascade.enabled.length} breakdown
           {cascade.enabled.length === 1 ? '' : 's'} available for {subItemLabel}
         </p>
         <div className='flex flex-wrap gap-2'>
-          {cascade.enabled.map((type) => {
-            const selected = type === demographicType
-            return (
-              <button
-                key={type}
-                type='button'
-                onClick={() => onSelectDemographic(type)}
-                aria-current={selected}
-                // min-h-11: measured live at 31px tall — under the 44px
-                // minimum. Not inline text (a standalone row of choices
-                // below the sentence), so the WCAG inline exception that
-                // covers SentenceSegment above doesn't apply here.
-                className={`flex min-h-11 cursor-pointer items-center rounded-full border px-3 py-1 text-small ${FOCUS_VISIBLE_CLASSES}`}
-                style={
-                  selected
-                    ? {
-                        backgroundColor: colors.hoverAltGreen,
-                        borderColor: colors.altGreen,
-                        color: colors.altGreen,
-                        fontWeight: 600,
-                      }
-                    : {
-                        backgroundColor: 'transparent',
-                        borderColor: colors.altGray,
-                        color: colors.altBlack,
-                      }
-                }
-              >
-                {CHARLIE_DEMOGRAPHIC_LABELS[type]}
-              </button>
-            )
-          })}
+          {cascade.enabled.map((type) => (
+            <span
+              key={type}
+              className='flex items-center rounded-full border border-alt-gray px-3 py-1 text-alt-black text-small'
+            >
+              {CHARLIE_DEMOGRAPHIC_LABELS[type]}
+            </span>
+          ))}
         </div>
       </div>
     </CharlieBottomSheet>
