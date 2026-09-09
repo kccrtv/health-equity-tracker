@@ -1,12 +1,12 @@
 import { AppBar, Chip, Toolbar } from '@mui/material'
 import { useState } from 'react'
+import CharlieBottomSheet from './CharlieBottomSheet'
+import CharlieGeographyList from './CharlieGeographyList'
 import {
   OCONUS_FIPS_CODES,
   OCONUS_GEOGRAPHIES,
   type OconusFipsCode,
 } from './reports/oconusGeographies'
-import HetListItemButton from './styles/HetComponents/HetListItemButton'
-import HetResponsiveDialog from './styles/HetComponents/HetResponsiveDialog'
 import { useParamState } from './utils/hooks/useParamState'
 
 export const CHARLIE_FIPS_PARAM = 'fips'
@@ -53,30 +53,21 @@ export default function CharlieTopBar() {
         </Toolbar>
       </AppBar>
 
-      <HetResponsiveDialog
+      <CharlieBottomSheet
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
+        title='Geography'
         ariaLabel='Choose a geography'
-        maxWidth='xs'
       >
-        <div className='text-left'>
-          <h2 className='mt-0 mb-2 font-semibold text-lg'>Geography</h2>
-          {OCONUS_FIPS_CODES.map((code) => (
-            <HetListItemButton
-              key={code}
-              option='normalBlack'
-              selected={code === fipsCode}
-              onClick={() => {
-                setFipsCode(code)
-                setPickerOpen(false)
-              }}
-              ariaLabel={OCONUS_GEOGRAPHIES[code].getDisplayName()}
-            >
-              {OCONUS_GEOGRAPHIES[code].getDisplayName()}
-            </HetListItemButton>
-          ))}
-        </div>
-      </HetResponsiveDialog>
+        <CharlieGeographyList
+          codes={OCONUS_FIPS_CODES}
+          selectedCode={fipsCode}
+          onSelect={(code) => {
+            setFipsCode(code)
+            setPickerOpen(false)
+          }}
+        />
+      </CharlieBottomSheet>
     </>
   )
 }
