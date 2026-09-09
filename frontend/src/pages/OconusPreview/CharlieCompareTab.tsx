@@ -11,6 +11,7 @@ import CustomShareTrendsLineChartOconus from '../../reports/CustomShareTrendsLin
 import CustomStackedSharesBarChartOconus from '../../reports/CustomStackedSharesBarChartOconus'
 import CustomUnknownMapOconus from '../../reports/CustomUnknownMapOconus'
 import {
+  getCharlieGeography,
   OCONUS_FIPS_CODES,
   OCONUS_GEOGRAPHIES,
   type OconusFipsCode,
@@ -154,7 +155,10 @@ export default function CharlieCompareTab() {
   const [compareTopicId, setCompareTopicId] = useCharlieCompareTopicId(topicId)
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  const primaryFips = OCONUS_GEOGRAPHIES[primaryCode]
+  // primaryCode can be '00' (United States) — the top bar's own picker
+  // added that as a 7th option, primary-geography-only per scope; Compare's
+  // OWN geography list (below) intentionally stays OCONUS-only.
+  const primaryFips = getCharlieGeography(primaryCode)
   const compareFips = OCONUS_GEOGRAPHIES[compareCode]
   const dataTypeConfig = CHARLIE_TOPICS[topicId]
   const topicLabel = CHARLIE_TOPIC_LABELS[topicId]

@@ -11,6 +11,18 @@ export const OCONUS_GEOGRAPHIES: Record<OconusFipsCode, Fips> =
     OCONUS_FIPS_CODES.map((code) => [code, new Fips(code)]),
   ) as Record<OconusFipsCode, Fips>
 
+// The top bar's own picker (CharlieTopBar.tsx) is the one place United
+// States is offered as a 7th option, alongside the 6 OCONUS geographies —
+// scoped there deliberately: Home's per-geography cards and Compare's
+// geography list both stay OCONUS_FIPS_CODES-only. A primary fips read back
+// from useCharlieFipsCode() can therefore be '00', which OCONUS_GEOGRAPHIES
+// has no entry for — this resolves either one, falling back to constructing
+// a fresh Fips for any code not in the map (safe for any valid fips string,
+// not just '00', so callers don't need their own special case).
+export function getCharlieGeography(code: string): Fips {
+  return OCONUS_GEOGRAPHIES[code as OconusFipsCode] ?? new Fips(code)
+}
+
 // Hawaiʻi has the strongest coverage of any OCONUS geography across the
 // topics checked so far (see scripts/coverage/geo-coverage-report.ts output),
 // so it's the sensible shared default until a selector lets a caller pick.

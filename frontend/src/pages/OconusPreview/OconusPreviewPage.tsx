@@ -8,7 +8,7 @@ import CustomRateTrendsLineChartOconus from '../../reports/CustomRateTrendsLineC
 import CustomShareTrendsLineChartOconus from '../../reports/CustomShareTrendsLineChartOconus'
 import CustomStackedSharesBarChartOconus from '../../reports/CustomStackedSharesBarChartOconus'
 import CustomUnknownMapOconus from '../../reports/CustomUnknownMapOconus'
-import { OCONUS_GEOGRAPHIES } from '../../reports/oconusGeographies'
+import { getCharlieGeography } from '../../reports/oconusGeographies'
 import { WHAT_IS_HEALTH_EQUITY_PAGE_LINK } from '../../utils/internalRoutes'
 import { LinkWithStickyParams } from '../../utils/urlutils'
 import CharlieReportHeader from './CharlieReportHeader'
@@ -52,7 +52,7 @@ const EXEMPT_CARD_IDS: CharlieCardId[] = ['rate-map', 'data-table']
 // (`m-2 ... shadow-raised`), same as on a real report.
 export default function OconusPreviewPage() {
   const [fipsCode, setFipsCode] = useCharlieFipsCode()
-  const fips = OCONUS_GEOGRAPHIES[fipsCode]
+  const fips = getCharlieGeography(fipsCode)
   const [topicId, setTopicId] = useCharlieTopic()
   const [dataTypeConfig, setDataTypeId] = useCharlieDataTypeConfig(topicId)
   const cascade = getCharlieDemographicCascade(dataTypeConfig, fips)
