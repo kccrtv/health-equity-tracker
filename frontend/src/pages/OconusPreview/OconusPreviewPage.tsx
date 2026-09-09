@@ -1,5 +1,5 @@
-import { ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { useCharlieFipsCode } from '../../CharlieTopBar'
+import CharlieTopicToggle from '../../CharlieTopicToggle'
 import type { Fips } from '../../data/utils/Fips'
 import CustomAltTableOconus from '../../reports/CustomAltTableOconus'
 import CustomBreakdownSummaryOconus from '../../reports/CustomBreakdownSummaryOconus'
@@ -10,19 +10,27 @@ import CustomShareTrendsLineChartOconus from '../../reports/CustomShareTrendsLin
 import CustomStackedSharesBarChartOconus from '../../reports/CustomStackedSharesBarChartOconus'
 import CustomUnknownMapOconus from '../../reports/CustomUnknownMapOconus'
 import { OCONUS_GEOGRAPHIES } from '../../reports/oconusGeographies'
+import { WHAT_IS_HEALTH_EQUITY_PAGE_LINK } from '../../utils/internalRoutes'
+import { LinkWithStickyParams } from '../../utils/urlutils'
 import {
-  CHARLIE_TOPIC_IDS,
-  CHARLIE_TOPIC_LABELS,
-  CHARLIE_TOPICS,
-  useCharlieTopic,
-} from './oconusTopics'
+  CHARLIE_CARD_LABELS,
+  type CharlieCardId,
+  useCharlieCardAvailability,
+} from './charlieCardAvailability'
+import { CHARLIE_TOPICS, useCharlieTopic } from './oconusTopics'
+
+// Cards that always render individually, never folded into the collapsed
+// empty-state summary below — Choropleth map (always shown per spec) and
+// Breakdown summary (kept per your call: it's the closest thing this
+// Report tab has to a "definitions/missing-data" section).
+const EXEMPT_CARD_IDS: CharlieCardId[] = ['rate-map', 'data-table']
 
 // SCRATCH PREVIEW page for the Charlie Oconus card set — the "Report" tab
 // inside CharlieShellLayout. This is an ongoing working page (not a one-off
 // to delete), so keep it up to date as the Oconus card set evolves.
 //
 // Geography comes from useCharlieFipsCode() (shared with CharlieTopBar's
-// chip/picker — global across all three tabs). Topic comes from
+// chip/picker — global across all four tabs). Topic comes from
 // useCharlieTopic(), a second independent URL param scoped to this tab
 // only: Compare stays fixed to incarceration regardless of this selector.
 // Both are URL-param-backed jotai state, same convention, no local state
@@ -44,8 +52,16 @@ export default function OconusPreviewPage() {
     setFipsCode(nextFips.code)
   }
 
+  const availability = useCharlieCardAvailability(fips, dataTypeConfig)
+  const collapsibleIds = (
+    Object.keys(CHARLIE_CARD_LABELS) as CharlieCardId[]
+  ).filter((id) => !EXEMPT_CARD_IDS.includes(id))
+  const allCollapsibleEmpty =
+    availability !== null &&
+    collapsibleIds.every((id) => availability[id] === false)
+
   const sections: Array<{
-    id: string
+    id: CharlieCardId
     label: string
     render: () => React.ReactNode
   }> = [
@@ -133,31 +149,40 @@ export default function OconusPreviewPage() {
         <div className='flex w-full items-center justify-center'>
           <div className='flex w-full flex-col content-center'>
             <div className='m-2 text-left'>
-              <ToggleButtonGroup
-                value={topicId}
-                exclusive
-                size='small'
-                onChange={(_event, newTopicId: string | null) => {
-                  if (newTopicId)
-                    setTopicId(newTopicId as (typeof CHARLIE_TOPIC_IDS)[number])
-                }}
-                aria-label='Topic'
-              >
-                {CHARLIE_TOPIC_IDS.map((id) => (
-                  <ToggleButton key={id} value={id} className='normal-case'>
-                    {CHARLIE_TOPIC_LABELS[id]}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
+              <CharlieTopicToggle topicId={topicId} onChange={setTopicId} />
             </div>
-            {sections.map(({ id, label, render }) => (
-              <div className='w-full' id={id} key={id}>
-                <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
-                  {label}
+            {sections.map(({ id, label, render }) => {
+              if (allCollapsibleEmpty && !EXEMPT_CARD_IDS.includes(id)) {
+                return null
+              }
+              return (
+                <div className='w-full' id={id} key={id}>
+                  <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
+                    {label}
+                  </h2>
+                  {render()}
+                </div>
+              )
+            })}
+            {allCollapsibleEmpty && (
+              <div className='m-2 rounded-sm bg-alt-white p-4 text-left shadow-raised'>
+                <h2 className='m-0 font-semibold text-lg'>
+                  No data available for these sections
                 </h2>
-                {render()}
+                <ul className='my-2 list-disc pl-5 text-alt-dark'>
+                  {collapsibleIds.map((id) => (
+                    <li key={id}>{CHARLIE_CARD_LABELS[id]}</li>
+                  ))}
+                </ul>
+                <p className='m-0 text-alt-dark text-small'>
+                  Learn how this affects{' '}
+                  <LinkWithStickyParams to={WHAT_IS_HEALTH_EQUITY_PAGE_LINK}>
+                    health equity
+                  </LinkWithStickyParams>
+                  .
+                </p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
