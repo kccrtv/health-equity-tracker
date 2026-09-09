@@ -13,6 +13,11 @@ interface CharlieBottomSheetProps {
   subtitle?: string
   ariaLabel: string
   children: ReactNode
+  // The sentence editor's own "Save →" title action already closes the
+  // sheet, making the default X redundant (two exits doing the same
+  // thing) — set true there to render just the one. Every other sheet
+  // keeps the X as its only close affordance.
+  hideCloseButton?: boolean
 }
 
 // Reusable bottom-sheet shell for the Charlie shell: drag handle, title
@@ -29,6 +34,7 @@ export default function CharlieBottomSheet({
   subtitle,
   ariaLabel,
   children,
+  hideCloseButton = false,
 }: CharlieBottomSheetProps) {
   const prefersReducedMotion = usePrefersReducedMotion()
 
@@ -62,17 +68,19 @@ export default function CharlieBottomSheet({
             <p className='m-0 mt-1 text-alt-dark text-small'>{subtitle}</p>
           )}
         </div>
-        <IconButton
-          onClick={onClose}
-          aria-label='close'
-          // Default MUI size='small' IconButton renders well under 44×44px
-          // (measured live at 30×26) — dropping the small size and forcing
-          // an explicit minimum gets it to a real touch target without
-          // enlarging the icon itself.
-          className='!min-h-11 !min-w-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
-        >
-          <CloseIcon fontSize='small' />
-        </IconButton>
+        {!hideCloseButton && (
+          <IconButton
+            onClick={onClose}
+            aria-label='close'
+            // Default MUI size='small' IconButton renders well under
+            // 44×44px (measured live at 30×26) — dropping the small size
+            // and forcing an explicit minimum gets it to a real touch
+            // target without enlarging the icon itself.
+            className='!min-h-11 !min-w-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
+          >
+            <CloseIcon fontSize='small' />
+          </IconButton>
+        )}
       </div>
       <div className='overflow-y-auto px-4 pb-4'>{children}</div>
     </Drawer>
