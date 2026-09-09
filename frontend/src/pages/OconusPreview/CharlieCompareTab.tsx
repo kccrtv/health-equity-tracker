@@ -1,9 +1,7 @@
-import { Button } from '@mui/material'
+import { Button, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { useState } from 'react'
 import CharlieBottomSheet from '../../CharlieBottomSheet'
-import CharlieGeographyList from '../../CharlieGeographyList'
 import { useCharlieFipsCode } from '../../CharlieTopBar'
-import CharlieTopicToggle from '../../CharlieTopicToggle'
 import CustomAltTableOconus from '../../reports/CustomAltTableOconus'
 import CustomBreakdownSummaryOconus from '../../reports/CustomBreakdownSummaryOconus'
 import CustomChoroplethMapOconus from '../../reports/CustomChoroplethMapOconus'
@@ -17,14 +15,23 @@ import {
   OCONUS_GEOGRAPHIES,
   type OconusFipsCode,
 } from '../../reports/oconusGeographies'
-import { useCharlieGeographyStatuses } from './charlieCardAvailability'
+import { colors } from '../../styles/tokens/colors'
+import CharlieComparisonOptionList, {
+  type ComparisonOption,
+} from './CharlieComparisonOptionList'
+import { getCharlieAxisAvailability } from './charlieDemographic'
 import {
+  CHARLIE_TOPIC_IDS,
   CHARLIE_TOPIC_LABELS,
   CHARLIE_TOPICS,
-  type CharlieTopicId,
   useCharlieTopic,
 } from './oconusTopics'
-import { useCharlieCompareFipsCode } from './useCharlieCompareFips'
+import {
+  type CharlieCompareMode,
+  useCharlieCompareFipsCode,
+  useCharlieCompareMode,
+  useCharlieCompareTopicId,
+} from './useCharlieCompareFips'
 
 const SECTIONS = [
   {
@@ -69,19 +76,82 @@ const SECTIONS = [
   },
 ] as const
 
+// Mirrors the real MadLib's Off/Places/Topics compare-mode concept (Charlie
+// has no "Off" — you're already on the dedicated Compare tab) as a pill
+// toggle matching the reviewed design concept, styled like the existing
+// Charlie pill pattern (CharlieTopicToggle) rather than the real app's
+// SimpleSelect dropdown control, since the concept's own mockup shows pills.
+function ComparePlacesTopicsToggle({
+  mode,
+  onChange,
+}: {
+  mode: CharlieCompareMode
+  onChange: (mode: CharlieCompareMode) => void
+}) {
+  return (
+    <ToggleButtonGroup
+      value={mode}
+      exclusive
+      size='small'
+      onChange={(_event, newMode: CharlieCompareMode | null) => {
+        if (newMode) onChange(newMode)
+      }}
+      aria-label='Compare mode'
+      sx={{
+        gap: '8px',
+        '& .MuiToggleButtonGroup-grouped': {
+          margin: 0,
+          border: `1px solid ${colors.altGray} !important`,
+          borderRadius: '9999px !important',
+        },
+      }}
+    >
+      <ToggleButton
+        value='places'
+        className='normal-case'
+        sx={{
+          '&.Mui-selected, &.Mui-selected:hover': {
+            backgroundColor: colors.hoverAltGreen,
+            borderColor: `${colors.altGreen} !important`,
+            color: colors.altGreen,
+            fontWeight: 600,
+          },
+        }}
+      >
+        Places
+      </ToggleButton>
+      <ToggleButton
+        value='topics'
+        className='normal-case'
+        sx={{
+          '&.Mui-selected, &.Mui-selected:hover': {
+            backgroundColor: colors.hoverAltGreen,
+            borderColor: `${colors.altGreen} !important`,
+            color: colors.altGreen,
+            fontWeight: 600,
+          },
+        }}
+      >
+        Topics
+      </ToggleButton>
+    </ToggleButtonGroup>
+  )
+}
+
 // "Compare" tab inside CharlieShellLayout. Renders each of the same 8
 // Report-tab card components twice — once for the primary geography (the
-// top bar's fips), once for the comparison geography (its own `compare`
-// URL param) — stacked full-width rather than the two bespoke 2-column
-// CustomRateBarChartCompareOconus/CustomStackedSharesBarChartCompareOconus
-// components this replaces. Those two are deleted: once Compare needs
-// every single-geography card rendered twice with a different fips, the
-// plain components already do exactly that with no modification, and
-// cover all 8 card types instead of just the 2 that got bespoke variants.
+// top bar's fips), once for the comparison side — stacked full-width. Two
+// modes: Places (topic fixed, second geography varies — the original
+// behavior) and Topics (geography fixed, second topic varies — new). Both
+// modes reuse the exact same axis-tag + availability-note mechanism
+// (CharlieComparisonOptionList), fed geography options in Places mode and
+// topic options in Topics mode.
 export default function CharlieCompareTab() {
   const [primaryCode] = useCharlieFipsCode()
   const [compareCode, setCompareCode] = useCharlieCompareFipsCode()
-  const [topicId, setTopicId] = useCharlieTopic()
+  const [topicId] = useCharlieTopic()
+  const [compareMode, setCompareMode] = useCharlieCompareMode()
+  const [compareTopicId, setCompareTopicId] = useCharlieCompareTopicId(topicId)
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const primaryFips = OCONUS_GEOGRAPHIES[primaryCode]
@@ -89,8 +159,43 @@ export default function CharlieCompareTab() {
   const dataTypeConfig = CHARLIE_TOPICS[topicId]
   const topicLabel = CHARLIE_TOPIC_LABELS[topicId]
 
+  const isPlaces = compareMode === 'places'
+
+  // What each of the two rendered card sets actually shows: in Places mode
+  // the topic is fixed and the geography varies; in Topics mode the
+  // geography is fixed and the topic varies. Card labels below follow
+  // whichever axis is actually varying, since labeling both cards by
+  // geography name in Topics mode would show the same name twice.
+  const secondaryFips = isPlaces ? compareFips : primaryFips
+  const secondaryDataTypeConfig = isPlaces
+    ? dataTypeConfig
+    : CHARLIE_TOPICS[compareTopicId]
+  const primaryLabel = isPlaces ? primaryFips.getDisplayName() : topicLabel
+  const secondaryLabel = isPlaces
+    ? compareFips.getDisplayName()
+    : CHARLIE_TOPIC_LABELS[compareTopicId]
+
   const otherCodes = OCONUS_FIPS_CODES.filter((code) => code !== primaryCode)
-  const statuses = useCharlieGeographyStatuses(otherCodes, dataTypeConfig)
+  const otherTopicIds = CHARLIE_TOPIC_IDS.filter((id) => id !== topicId)
+
+  const geographyOptions: ComparisonOption[] = otherCodes.map((code) => ({
+    id: code,
+    label: OCONUS_GEOGRAPHIES[code].getDisplayName(),
+    axes: getCharlieAxisAvailability(dataTypeConfig, OCONUS_GEOGRAPHIES[code]),
+  }))
+
+  const topicOptions: ComparisonOption[] = otherTopicIds.map((id) => ({
+    id,
+    label: CHARLIE_TOPIC_LABELS[id],
+    axes: getCharlieAxisAvailability(CHARLIE_TOPICS[id], primaryFips),
+  }))
+
+  // "INCARCERATION, Hawaiʻi vs Puerto Rico" (Places — topic fixed, shown in
+  // caps) / "HAWAIʻI, Incarceration vs COVID-19" (Topics — place fixed,
+  // shown in caps): the fixed axis leads in caps, the varying pair follows.
+  const fixedAxisCaps = (
+    isPlaces ? topicLabel : primaryFips.getDisplayName()
+  ).toUpperCase()
 
   return (
     <div className='flex'>
@@ -98,16 +203,13 @@ export default function CharlieCompareTab() {
         <div className='flex w-full flex-col content-center'>
           <div className='m-2 rounded-2xl bg-alt-white p-4 text-left shadow-raised'>
             <div className='font-semibold text-alt-green text-smallest uppercase tracking-wide'>
-              Comparing · {topicLabel}
+              Comparing
             </div>
             <div className='mt-1 flex flex-wrap items-baseline gap-x-2 text-lg'>
-              <span className='font-bold text-alt-green'>
-                {primaryFips.getDisplayName()}
-              </span>
+              <span className='font-bold text-alt-green'>{fixedAxisCaps},</span>
+              <span className='font-bold text-alt-green'>{primaryLabel}</span>
               <span className='font-normal text-alt-dark text-small'>vs</span>
-              <span className='font-bold text-alt-green'>
-                {compareFips.getDisplayName()}
-              </span>
+              <span className='font-bold text-alt-green'>{secondaryLabel}</span>
             </div>
             <Button
               size='small'
@@ -122,13 +224,16 @@ export default function CharlieCompareTab() {
           {SECTIONS.map(({ id, label, Component }) => (
             <div className='w-full [&_article]:rounded-2xl' key={id}>
               <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
-                {label} — {primaryFips.getDisplayName()}
+                {label} — {primaryLabel}
               </h2>
               <Component fips={primaryFips} dataTypeConfig={dataTypeConfig} />
               <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
-                {label} — {compareFips.getDisplayName()}
+                {label} — {secondaryLabel}
               </h2>
-              <Component fips={compareFips} dataTypeConfig={dataTypeConfig} />
+              <Component
+                fips={secondaryFips}
+                dataTypeConfig={secondaryDataTypeConfig}
+              />
             </div>
           ))}
         </div>
@@ -138,43 +243,58 @@ export default function CharlieCompareTab() {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title='Change comparison'
-        subtitle={`Comparing against ${primaryFips.getDisplayName()}`}
         ariaLabel='Change comparison'
       >
         <div className='text-left'>
-          <h3 className='mt-2 mb-1 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
-            Topic
-          </h3>
-          <CharlieTopicToggle
-            topicId={topicId}
-            onChange={(id: CharlieTopicId) => setTopicId(id)}
-          />
+          <div className='mb-4'>
+            <ComparePlacesTopicsToggle
+              mode={compareMode}
+              onChange={setCompareMode}
+            />
+          </div>
 
-          <h3 className='mt-4 mb-1 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
-            Compare with
-          </h3>
-          <CharlieGeographyList
-            codes={otherCodes}
-            selectedCode={compareCode}
-            onSelect={(code: OconusFipsCode) => {
-              setCompareCode(code)
-              setSheetOpen(false)
-            }}
-            getStatus={(code) => {
-              const level = statuses?.[code]
-              const geoName = OCONUS_GEOGRAPHIES[code].getDisplayName()
-              if (!level) return { level: 'partial', label: 'Checking…' }
-              if (level === 'full')
-                return { level, label: 'Full data available' }
-              if (level === 'partial') {
-                return { level, label: 'Some breakdowns unavailable' }
-              }
-              return {
-                level,
-                label: `No ${topicLabel} data for ${geoName} yet`,
-              }
-            }}
-          />
+          {isPlaces ? (
+            <>
+              <h3 className='mt-2 mb-1 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
+                Places · Fixed topic ({topicLabel})
+              </h3>
+              <CharlieComparisonOptionList
+                options={geographyOptions}
+                selectedId={compareCode}
+                onSelect={(id) => {
+                  setCompareCode(id as OconusFipsCode)
+                  setSheetOpen(false)
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <h3 className='mt-2 mb-1 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
+                Topics · Fixed place ({primaryFips.getDisplayName()})
+              </h3>
+              <CharlieComparisonOptionList
+                options={topicOptions}
+                selectedId={compareTopicId}
+                onSelect={(id) => {
+                  setCompareTopicId(id as (typeof CHARLIE_TOPIC_IDS)[number])
+                  setSheetOpen(false)
+                }}
+              />
+              {otherTopicIds.length > 0 &&
+                topicOptions.every((option) =>
+                  option.axes.every((axis) => axis.available),
+                ) && (
+                  <p className='mt-3 text-alt-dark text-small'>
+                    Both live CHARLIE OCONUS topics share the same three axes at{' '}
+                    {primaryFips.getDisplayName()}, so every topic pair
+                    currently reads fully available. The same axis-tag and note
+                    mechanism from Places mode is reused here — it would flag a
+                    gap automatically the moment a future topic supports fewer
+                    breakdowns at this place.
+                  </p>
+                )}
+            </>
+          )}
         </div>
       </CharlieBottomSheet>
     </div>

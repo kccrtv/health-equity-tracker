@@ -60,6 +60,46 @@ export function getCharlieDemographicCascade(
   return { enabled: PILL_ORDER.filter((type) => enabledSet.has(type)) }
 }
 
+// The 3 axes both real Charlie topics (Incarceration, COVID) ever touch —
+// PHRMA/PHRMA-BRFSS's extra dimensions (Insurance status, Education,
+// Income) never apply to either, so Compare's axis-tag rows only ever need
+// to ask about these three.
+export const COMPARE_AXIS_TYPES: DemographicType[] = [
+  'age',
+  'race_and_ethnicity',
+  'sex',
+]
+
+export interface AxisAvailability {
+  type: DemographicType
+  available: boolean
+}
+
+// Compare's "axis-tag" mechanism (Places and Topics modes both use this):
+// per-axis available/unavailable, reusing the same real
+// getAllDemographicOptions() call the sentence editor's cascade already
+// does — not a separate re-derivation. Verified live: for both of
+// Charlie's real topics, at every one of the 6 OCONUS geographies, all
+// three axes currently resolve available, so every row reads fully
+// available today. That's correct per the design concept, not a bug in
+// this function — it's real data, and it's designed to start flagging a
+// gap automatically the moment a future topic or geography combination
+// doesn't support one of these axes, with no code change needed here.
+export function getCharlieAxisAvailability(
+  dataTypeConfig: DataTypeConfig,
+  fips: Fips,
+): AxisAvailability[] {
+  const { enabledDemographicOptionsMap } = getAllDemographicOptions(
+    dataTypeConfig,
+    fips,
+  )
+  const enabledSet = new Set(Object.values(enabledDemographicOptionsMap))
+  return COMPARE_AXIS_TYPES.map((type) => ({
+    type,
+    available: enabledSet.has(type),
+  }))
+}
+
 // URL-param-backed (`demo`), scoped to the Report tab like `topic`/`dt`. If
 // the persisted choice is no longer valid for the current topic/sub-item
 // (e.g. switching from an all-sexes cancer type to a sex-specific one),

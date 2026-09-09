@@ -6,8 +6,6 @@ import type {
 import { Breakdowns } from '../../data/query/Breakdowns'
 import { MetricQuery } from '../../data/query/MetricQuery'
 import type { Fips } from '../../data/utils/Fips'
-import type { OconusFipsCode } from '../../reports/oconusGeographies'
-import { OCONUS_GEOGRAPHIES } from '../../reports/oconusGeographies'
 import { getDataManager } from '../../utils/globals'
 
 // Shared by the Report tab's empty-card collapse (Part 6) and Compare's
@@ -158,20 +156,6 @@ async function getCardAvailability(
   return Object.fromEntries(entries) as Record<CharlieCardId, boolean>
 }
 
-export type GeographyStatusLevel = 'full' | 'partial' | 'none'
-
-async function getGeographyStatusLevel(
-  fips: Fips,
-  dataTypeConfig: DataTypeConfig,
-): Promise<GeographyStatusLevel> {
-  const availability = await getCardAvailability(fips, dataTypeConfig)
-  const values = Object.values(availability)
-  const hasCount = values.filter(Boolean).length
-  if (hasCount === values.length) return 'full'
-  if (hasCount === 0) return 'none'
-  return 'partial'
-}
-
 // Part 6: per-card availability for a single geography, for the Report
 // tab's own empty-card collapse.
 export function useCharlieCardAvailability(
@@ -195,50 +179,4 @@ export function useCharlieCardAvailability(
   }, [fips.code, dataTypeConfig])
 
   return availability
-}
-
-// Part 4: geography-level full/partial/none status for Compare's
-// "Compare with" list, across a set of geographies at once.
-export function useCharlieGeographyStatuses(
-  codes: readonly OconusFipsCode[],
-  dataTypeConfig: DataTypeConfig,
-): Record<OconusFipsCode, GeographyStatusLevel> | null {
-  const [statuses, setStatuses] = useState<Record<
-    OconusFipsCode,
-    GeographyStatusLevel
-  > | null>(null)
-  const codesKey = codes.join(',')
-
-  useEffect(() => {
-    let cancelled = false
-    setStatuses(null)
-    void Promise.all(
-      codes.map(
-        async (code) =>
-          [
-            code,
-            await getGeographyStatusLevel(
-              OCONUS_GEOGRAPHIES[code],
-              dataTypeConfig,
-            ),
-          ] as const,
-      ),
-    ).then((entries) => {
-      if (!cancelled) {
-        setStatuses(
-          Object.fromEntries(entries) as Record<
-            OconusFipsCode,
-            GeographyStatusLevel
-          >,
-        )
-      }
-    })
-    return () => {
-      cancelled = true
-    }
-    // Deliberately depends on codesKey (a stable string), not `codes` itself
-    // (a fresh array reference each render).
-  }, [codesKey, dataTypeConfig])
-
-  return statuses
 }
