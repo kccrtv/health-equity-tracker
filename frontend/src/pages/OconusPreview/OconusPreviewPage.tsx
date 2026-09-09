@@ -12,6 +12,7 @@ import { getCharlieGeography } from '../../reports/oconusGeographies'
 import { WHAT_IS_HEALTH_EQUITY_PAGE_LINK } from '../../utils/internalRoutes'
 import { LinkWithStickyParams } from '../../utils/urlutils'
 import CharlieReportHeader from './CharlieReportHeader'
+import { useCharlieActiveSection } from './charlieActiveSection'
 import {
   CHARLIE_CARD_LABELS,
   type CharlieCardId,
@@ -79,11 +80,14 @@ export default function OconusPreviewPage() {
   const allCollapsibleEmpty =
     availability !== null &&
     collapsibleIds.every((id) => availability[id] === false)
-  const availableCardIds = new Set<CharlieCardId>(
-    (Object.keys(CHARLIE_CARD_LABELS) as CharlieCardId[]).filter(
-      (id) => !allCollapsibleEmpty || EXEMPT_CARD_IDS.includes(id),
-    ),
-  )
+  const availableCardIdsArray = (
+    Object.keys(CHARLIE_CARD_LABELS) as CharlieCardId[]
+  ).filter((id) => !allCollapsibleEmpty || EXEMPT_CARD_IDS.includes(id))
+  const availableCardIds = new Set<CharlieCardId>(availableCardIdsArray)
+  // Always mounted here (not inside the Jump To sheet itself, which only
+  // exists in the DOM while open) so it has a live, continuously-updated
+  // answer the moment the sheet opens, rather than starting cold each time.
+  const activeSectionId = useCharlieActiveSection(availableCardIdsArray)
 
   const sections: Array<{
     id: CharlieCardId
@@ -197,6 +201,7 @@ export default function OconusPreviewPage() {
               demographicType={demographicType}
               onDemographicChange={setDemographicType}
               availableCardIds={availableCardIds}
+              activeSectionId={activeSectionId}
             />
             {sections.map(({ id, label, render }) => {
               if (allCollapsibleEmpty && !EXEMPT_CARD_IDS.includes(id)) {

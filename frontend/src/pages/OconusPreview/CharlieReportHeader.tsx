@@ -37,6 +37,7 @@ interface CharlieReportHeaderProps {
   demographicType: DemographicType
   onDemographicChange: (type: DemographicType) => void
   availableCardIds: Set<CharlieCardId>
+  activeSectionId: CharlieCardId
 }
 
 // Replaces the Report tab's old topic-pill row entirely (not additive): a
@@ -57,6 +58,7 @@ export default function CharlieReportHeader({
   demographicType,
   onDemographicChange,
   availableCardIds,
+  activeSectionId,
 }: CharlieReportHeaderProps) {
   const [openSheet, setOpenSheet] = useState<OpenSheet>('none')
   const navigate = useNavigate()
@@ -247,6 +249,7 @@ export default function CharlieReportHeader({
         open={openSheet === 'jumpTo'}
         onClose={() => setOpenSheet('none')}
         availableIds={availableCardIds}
+        activeSectionId={activeSectionId}
       />
     </div>
   )

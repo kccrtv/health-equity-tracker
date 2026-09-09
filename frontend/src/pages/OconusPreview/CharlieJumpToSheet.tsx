@@ -88,12 +88,18 @@ interface CharlieJumpToSheetProps {
   // rather than shown disabled, matching the Report tab's own collapse
   // behavior (the cards genuinely aren't there, not just unavailable).
   availableIds: Set<CharlieCardId>
+  // Which report section is currently scrolled into view — computed by
+  // useCharlieActiveSection in OconusPreviewPage.tsx (always mounted, so
+  // this is already live by the time the sheet opens) rather than tracked
+  // fresh here each time the sheet mounts.
+  activeSectionId: CharlieCardId
 }
 
 export default function CharlieJumpToSheet({
   open,
   onClose,
   availableIds,
+  activeSectionId,
 }: CharlieJumpToSheetProps) {
   const handleJump = (id: CharlieCardId) => {
     onClose()
@@ -122,26 +128,39 @@ export default function CharlieJumpToSheet({
           if (items.length === 0) return null
           return (
             <div key={group.heading} className='mb-4'>
-              <h3 className='mb-1 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
+              {/* Shaded rounded container behind the group heading — these
+                  used to be bare small-caps text with no grouping
+                  container at all. */}
+              <h3 className='m-0 mb-1 rounded-md bg-bg-color px-2 py-1 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
                 {group.heading}
               </h3>
               <ul className='m-0 list-none p-0'>
-                {items.map(({ id, label, Icon }) => (
-                  <li key={id}>
-                    <button
-                      type='button'
-                      onClick={() => handleJump(id)}
-                      className='flex min-h-11 w-full cursor-pointer items-center gap-3 border-0 bg-transparent py-3 text-left text-alt-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
-                    >
-                      <Icon
-                        fontSize='small'
-                        className='text-alt-dark'
-                        aria-hidden='true'
-                      />
-                      <span>{label}</span>
-                    </button>
-                  </li>
-                ))}
+                {items.map(({ id, label, Icon }) => {
+                  const isActive = id === activeSectionId
+                  return (
+                    <li key={id}>
+                      <button
+                        type='button'
+                        onClick={() => handleJump(id)}
+                        aria-current={isActive}
+                        className={`flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-md border-0 py-3 pr-3 pl-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2 ${
+                          isActive
+                            ? 'bg-hover-alt-green font-semibold text-alt-green'
+                            : 'bg-transparent text-alt-black'
+                        }`}
+                      >
+                        <Icon
+                          fontSize='small'
+                          className={
+                            isActive ? 'text-alt-green' : 'text-alt-dark'
+                          }
+                          aria-hidden='true'
+                        />
+                        <span>{label}</span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           )
