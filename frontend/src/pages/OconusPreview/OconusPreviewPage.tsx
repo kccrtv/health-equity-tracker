@@ -1,5 +1,4 @@
 import { useCharlieFipsCode } from '../../CharlieTopBar'
-import CharlieTopicToggle from '../../CharlieTopicToggle'
 import type { Fips } from '../../data/utils/Fips'
 import CustomAltTableOconus from '../../reports/CustomAltTableOconus'
 import CustomBreakdownSummaryOconus from '../../reports/CustomBreakdownSummaryOconus'
@@ -12,12 +11,21 @@ import CustomUnknownMapOconus from '../../reports/CustomUnknownMapOconus'
 import { OCONUS_GEOGRAPHIES } from '../../reports/oconusGeographies'
 import { WHAT_IS_HEALTH_EQUITY_PAGE_LINK } from '../../utils/internalRoutes'
 import { LinkWithStickyParams } from '../../utils/urlutils'
+import CharlieReportHeader from './CharlieReportHeader'
 import {
   CHARLIE_CARD_LABELS,
   type CharlieCardId,
   useCharlieCardAvailability,
 } from './charlieCardAvailability'
-import { CHARLIE_TOPICS, useCharlieTopic } from './oconusTopics'
+import {
+  getCharlieDemographicCascade,
+  useCharlieDemographicType,
+} from './charlieDemographic'
+import {
+  type CharlieTopicId,
+  useCharlieDataTypeConfig,
+  useCharlieTopic,
+} from './oconusTopics'
 
 // Cards that always render individually, never folded into the collapsed
 // empty-state summary below — Choropleth map (always shown per spec) and
@@ -46,10 +54,22 @@ export default function OconusPreviewPage() {
   const [fipsCode, setFipsCode] = useCharlieFipsCode()
   const fips = OCONUS_GEOGRAPHIES[fipsCode]
   const [topicId, setTopicId] = useCharlieTopic()
-  const dataTypeConfig = CHARLIE_TOPICS[topicId]
+  const [dataTypeConfig, setDataTypeId] = useCharlieDataTypeConfig(topicId)
+  const cascade = getCharlieDemographicCascade(dataTypeConfig, fips)
+  const [demographicType, setDemographicType] =
+    useCharlieDemographicType(cascade)
 
   const updateFipsCallback = (nextFips: Fips) => {
     setFipsCode(nextFips.code)
+  }
+
+  // Mirrors the real MadLib's own invariant (setMadLibWithParam's
+  // dtOverrides): changing the topic clears the sub-item choice back to
+  // the new topic's default rather than carrying over a dataTypeId that
+  // may not even exist in the new topic's METRIC_CONFIG array.
+  const handleTopicChange = (id: CharlieTopicId, defaultDataTypeId: string) => {
+    setTopicId(id)
+    setDataTypeId(defaultDataTypeId)
   }
 
   const availability = useCharlieCardAvailability(fips, dataTypeConfig)
@@ -59,6 +79,11 @@ export default function OconusPreviewPage() {
   const allCollapsibleEmpty =
     availability !== null &&
     collapsibleIds.every((id) => availability[id] === false)
+  const availableCardIds = new Set<CharlieCardId>(
+    (Object.keys(CHARLIE_CARD_LABELS) as CharlieCardId[]).filter(
+      (id) => !allCollapsibleEmpty || EXEMPT_CARD_IDS.includes(id),
+    ),
+  )
 
   const sections: Array<{
     id: CharlieCardId
@@ -72,6 +97,7 @@ export default function OconusPreviewPage() {
         <CustomChoroplethMapOconus
           fips={fips}
           dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
           updateFipsCallback={updateFipsCallback}
         />
       ),
@@ -83,6 +109,7 @@ export default function OconusPreviewPage() {
         <CustomRateTrendsLineChartOconus
           fips={fips}
           dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
         />
       ),
     },
@@ -90,16 +117,26 @@ export default function OconusPreviewPage() {
       id: 'rate-chart',
       label: 'Rate bar chart',
       render: () => (
-        <CustomRateBarChartOconus fips={fips} dataTypeConfig={dataTypeConfig} />
+        <CustomRateBarChartOconus
+          fips={fips}
+          dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
+        />
       ),
     },
     {
       id: 'unknown-demographic-map',
       label: 'Unknowns map',
       render: () => (
+        // demographicType is accepted here but not honored internally —
+        // CustomUnknownMapOconus hardcodes race_and_ethnicity for the real
+        // UnknownsMapCard regardless of what's passed. Pre-existing, not
+        // introduced by this change; passing it through anyway so the prop
+        // is correct if that's ever fixed.
         <CustomUnknownMapOconus
           fips={fips}
           dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
           updateFipsCallback={updateFipsCallback}
         />
       ),
@@ -111,6 +148,7 @@ export default function OconusPreviewPage() {
         <CustomShareTrendsLineChartOconus
           fips={fips}
           dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
         />
       ),
     },
@@ -121,6 +159,7 @@ export default function OconusPreviewPage() {
         <CustomStackedSharesBarChartOconus
           fips={fips}
           dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
         />
       ),
     },
@@ -128,7 +167,11 @@ export default function OconusPreviewPage() {
       id: 'rates-over-time-table',
       label: 'Alt table',
       render: () => (
-        <CustomAltTableOconus fips={fips} dataTypeConfig={dataTypeConfig} />
+        <CustomAltTableOconus
+          fips={fips}
+          dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
+        />
       ),
     },
     {
@@ -138,6 +181,7 @@ export default function OconusPreviewPage() {
         <CustomBreakdownSummaryOconus
           fips={fips}
           dataTypeConfig={dataTypeConfig}
+          demographicType={demographicType}
         />
       ),
     },
@@ -148,9 +192,17 @@ export default function OconusPreviewPage() {
       <div className='w-full md:w-10/12'>
         <div className='flex w-full items-center justify-center'>
           <div className='flex w-full flex-col content-center'>
-            <div className='m-2 text-left'>
-              <CharlieTopicToggle topicId={topicId} onChange={setTopicId} />
-            </div>
+            <CharlieReportHeader
+              topicId={topicId}
+              onTopicChange={handleTopicChange}
+              dataTypeConfig={dataTypeConfig}
+              onDataTypeChange={setDataTypeId}
+              fips={fips}
+              onFipsChange={setFipsCode}
+              demographicType={demographicType}
+              onDemographicChange={setDemographicType}
+              availableCardIds={availableCardIds}
+            />
             {sections.map(({ id, label, render }) => {
               if (allCollapsibleEmpty && !EXEMPT_CARD_IDS.includes(id)) {
                 return null

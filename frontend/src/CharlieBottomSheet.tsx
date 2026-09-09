@@ -5,7 +5,10 @@ import type { ReactNode } from 'react'
 interface CharlieBottomSheetProps {
   open: boolean
   onClose: () => void
-  title: string
+  // ReactNode (not just string) so the sentence editor can put its own
+  // "Save →" action in the title slot instead of a plain heading — still a
+  // plain string everywhere else.
+  title: ReactNode
   subtitle?: string
   ariaLabel: string
   children: ReactNode

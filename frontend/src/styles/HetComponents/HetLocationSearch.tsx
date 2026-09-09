@@ -30,6 +30,11 @@ interface HetLocationSearchProps {
   popover: PopoverElements
   recentLocations: string[]
   value: string
+  // Defaults to true (the real MadLib's own location picker always offers
+  // it). A caller whose own `options` never include USA_FIPS — e.g. CHARLIE
+  // OCONUS's 6-geography picker — sets this false so the shortcut can't
+  // offer a destination outside its own scope.
+  showUsaOption?: boolean
 }
 
 export default function HetLocationSearch(props: HetLocationSearchProps) {
@@ -39,7 +44,9 @@ export default function HetLocationSearch(props: HetLocationSearchProps) {
 
   const isUsa = props.value === USA_FIPS
   const showUsaShortcut =
-    !isUsa && !props.recentLocations.some((code) => code === USA_FIPS)
+    (props.showUsaOption ?? true) &&
+    !isUsa &&
+    !props.recentLocations.some((code) => code === USA_FIPS)
 
   const [autoCompleteOpen, setAutoCompleteOpen] = useState(false)
   const isSmAndUp = useIsBreakpointAndUp('sm')
