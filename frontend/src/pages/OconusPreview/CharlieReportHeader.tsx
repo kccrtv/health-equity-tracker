@@ -98,11 +98,16 @@ export default function CharlieReportHeader({
         <h1 className='m-0 min-w-0 flex-1 truncate p-0 font-semibold text-base'>
           {summary}
         </h1>
-        <EditIcon
-          fontSize='small'
-          className='shrink-0 text-alt-dark'
-          aria-hidden='true'
-        />
+        {/* Bordered box around just the icon (not the whole button) — a
+            bare icon read as decorative rather than as its own tappable
+            affordance. */}
+        <span className='flex shrink-0 items-center justify-center rounded-md border border-alt-gray p-1'>
+          <EditIcon
+            fontSize='small'
+            className='text-alt-dark'
+            aria-hidden='true'
+          />
+        </span>
       </button>
       {/* Announces geography/topic/demographic changes to assistive tech —
           this text already updates live with every one of those changes, so
