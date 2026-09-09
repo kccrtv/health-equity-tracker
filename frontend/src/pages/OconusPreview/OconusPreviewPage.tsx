@@ -169,22 +169,35 @@ export default function OconusPreviewPage() {
               )
             })}
             {allCollapsibleEmpty && (
-              <div className='m-2 rounded-2xl bg-alt-white p-4 text-left shadow-raised'>
-                <h2 className='m-0 font-semibold text-lg'>
-                  No data available for these sections
-                </h2>
-                <ul className='my-2 list-disc pl-5 text-alt-dark'>
-                  {collapsibleIds.map((id) => (
-                    <li key={id}>{CHARLIE_CARD_LABELS[id]}</li>
-                  ))}
-                </ul>
-                <p className='m-0 text-alt-dark text-small'>
-                  Learn how this affects{' '}
-                  <LinkWithStickyParams to={WHAT_IS_HEALTH_EQUITY_PAGE_LINK}>
-                    health equity
-                  </LinkWithStickyParams>
-                  .
-                </p>
+              // p-3 matches CardWrapper.tsx's own real cards
+              // (`relative m-2 rounded-sm bg-alt-white p-3 shadow-raised`)
+              // exactly, but that alone isn't enough: the real "Table
+              // unavailable: ..." heading directly above (in the exempt
+              // Breakdown summary card, when it's also empty) sits inside
+              // an additional `mx-3` wrapper CardWrapper's missing-data
+              // alert rendering adds on top of the card's own p-3 — an
+              // extra 12px this card has no reason to know about other
+              // than matching it, so it's replicated here (the same nested
+              // p-3 > mx-3 structure) to land both headings at the same
+              // x-position instead of 12px apart.
+              <div className='m-2 rounded-2xl bg-alt-white p-3 text-left shadow-raised'>
+                <div className='mx-3'>
+                  <h2 className='m-0 font-semibold text-lg'>
+                    No data available for these sections
+                  </h2>
+                  <ul className='my-2 list-disc pl-5 text-alt-dark'>
+                    {collapsibleIds.map((id) => (
+                      <li key={id}>{CHARLIE_CARD_LABELS[id]}</li>
+                    ))}
+                  </ul>
+                  <p className='m-0 text-alt-dark text-small'>
+                    Learn how this affects{' '}
+                    <LinkWithStickyParams to={WHAT_IS_HEALTH_EQUITY_PAGE_LINK}>
+                      health equity
+                    </LinkWithStickyParams>
+                    .
+                  </p>
+                </div>
               </div>
             )}
           </div>

@@ -51,8 +51,8 @@ export default function CharlieHomeTab() {
   return (
     <div className='flex'>
       <div className='w-full md:w-10/12'>
-        <div className='flex w-full flex-col content-center px-4'>
-          <h2 className='mt-2 mb-2 text-left font-semibold text-lg'>
+        <div className='flex w-full flex-col content-center px-4 py-2'>
+          <h2 className='mt-2 mb-4 text-left font-semibold text-lg'>
             {topicLabel} across Oconus
           </h2>
           {OCONUS_FIPS_CODES.map((code) => (
@@ -106,8 +106,12 @@ function HomeCard({
     body = `No ${topicLabel} data is published for ${fips.getDisplayName()} — every card on the Report tab for this geography will read the same way.`
   }
 
+  // Home cards intentionally use a smaller radius than the site-wide
+  // 16px (rounded-2xl) standard applied to Report/Compare cards and the
+  // bottom sheets — the original Claude Design Home mockup uses a
+  // distinctly tighter corner for this list, not the same value.
   return (
-    <Card className='!rounded-2xl my-2 shadow-raised' elevation={0}>
+    <Card className='!rounded-lg my-3 shadow-raised' elevation={0}>
       <CardActionArea onClick={goToReport} className='text-left'>
         <CardContent>
           <div className='font-semibold text-alt-green'>
