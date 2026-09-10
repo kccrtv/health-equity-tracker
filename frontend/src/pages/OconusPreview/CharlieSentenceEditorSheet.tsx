@@ -30,26 +30,61 @@ interface CharlieSentenceEditorSheetProps {
 const FOCUS_VISIBLE_CLASSES =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
 
-// A tappable word/phrase inside the sentence — pill background plus a
-// down-caret and an underline, both signaling "this opens a picker" the
-// way the real MadLib's own selector buttons do, and a small caption below
-// naming which axis it edits (per the reference concept). This is the ONE
-// shared component for every blank (Topic, Topic breakdown, Place,
+// Row/cell grid replacing a single flowing <p>, matching Claude Design's
+// exact markup: every row is a flex container of cells (plain text or
+// pill), and EVERY cell — text and pill alike — shares the same height and
+// border-bottom. That shared border is what produces one continuous
+// baseline running under the whole sentence, not just under the pills; a
+// flowing paragraph with inline pills (the prior implementation) can't
+// produce that, since plain text has no box to hang a border off of.
+//
+// Values are Design's literal arbitrary ones (#eaeaea row rule, #dbeee0
+// pill fill, #383838 sentence text, 0.5625rem/#9a9a9a caption) rather than
+// existing tokens — this is a pixel-for-pixel port of an exported design,
+// not a from-scratch style decision, so token substitution would silently
+// drift from the source.
+function TextCell({ children }: { children: string }) {
+  return (
+    <div className='flex flex-col items-center'>
+      <div className='flex h-[34px] items-start justify-center border-[#eaeaea] border-b px-1 pt-[6px] pb-0'>
+        <span className='whitespace-nowrap'>{children}</span>
+      </div>
+    </div>
+  )
+}
+
+// The pill itself — shared by PillCell and the parenthesized topic-breakdown
+// unit below. Deliberately NOT resized to the 44×44px touch-target minimum:
+// WCAG 2.5.8 explicitly exempts inline targets "in a sentence or [whose]
+// size is otherwise constrained by the line-height of non-target text" —
+// enlarging it would break the row it's laid out in. Still gets a visible
+// focus ring since that's a separate (unexempted) requirement.
+function PillButton({
+  label,
+  onClick,
+}: {
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className={`flex cursor-pointer items-center whitespace-nowrap rounded-t-md bg-[#dbeee0] px-2.5 font-bold text-[#0b5240] ${FOCUS_VISIBLE_CLASSES}`}
+    >
+      {label}
+      <span className='ml-1.5' aria-hidden='true'>
+        ▾
+      </span>
+    </button>
+  )
+}
+
+// This is the ONE shared component for every ordinary blank (Topic, Place,
 // Demographic) — none of them may special-case their own styling, since a
-// prior version hand-rolled the Demographic blank separately and it silently
-// drifted to plain text with no chip, caret, or tap target.
-//
-// Deliberately NOT resized to the 44×44px touch-target minimum: WCAG 2.5.8
-// explicitly exempts inline targets "in a sentence or [whose] size is
-// otherwise constrained by the line-height of non-target text" — enlarging
-// these would break the running sentence they're part of. Still gets a
-// visible focus ring since that's a separate (unexempted) requirement.
-//
-// inline-flex flex-col (not inline-block) so the caption sits centered
-// directly under the pill rather than the pill's own line-height pushing
-// it off to one side; align-bottom keeps the taller segment from shifting
-// the surrounding plain-text baseline.
-function SentenceSegment({
+// prior version hand-rolled the Demographic blank separately and it
+// silently drifted to plain text with no chip, caret, or tap target.
+function PillCell({
   label,
   caption,
   onClick,
@@ -59,21 +94,40 @@ function SentenceSegment({
   onClick: () => void
 }) {
   return (
-    <span className='mx-1 inline-flex flex-col items-center align-bottom'>
-      <button
-        type='button'
-        onClick={onClick}
-        className={`inline-flex cursor-pointer items-center whitespace-nowrap rounded-t-md border-0 border-alt-green border-b-[1.5px] bg-alt-green-tint px-2.5 font-bold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
-      >
-        {label}
-        <span className='ml-1.5' aria-hidden='true'>
-          ▾
-        </span>
-      </button>
-      <span className='mt-0.5 text-alt-dark text-smallest uppercase tracking-wide'>
+    <div className='flex flex-col items-center'>
+      <div className='flex h-[34px] items-stretch justify-center border-[#eaeaea] border-b px-1'>
+        <PillButton label={label} onClick={onClick} />
+      </div>
+      <span className='mt-[5px] whitespace-nowrap font-semibold text-[#9a9a9a] text-[0.5625rem] uppercase tracking-[0.04em]'>
         ({caption})
       </span>
-    </span>
+    </div>
+  )
+}
+
+// The optional "(Prison)"-style topic-breakdown unit: same pill, but with
+// literal parens inside the same bordered cell so the row's shared baseline
+// still runs underneath them instead of stopping at the pill's edges.
+function ParenPillCell({
+  label,
+  caption,
+  onClick,
+}: {
+  label: string
+  caption: string
+  onClick: () => void
+}) {
+  return (
+    <div className='flex flex-col items-center'>
+      <div className='flex h-[34px] items-stretch justify-center border-[#eaeaea] border-b px-1'>
+        <span className='flex items-center whitespace-nowrap'>
+          (<PillButton label={label} onClick={onClick} />)
+        </span>
+      </div>
+      <span className='mt-[5px] whitespace-nowrap font-semibold text-[#9a9a9a] text-[0.5625rem] uppercase tracking-[0.04em]'>
+        ({caption})
+      </span>
+    </div>
   )
 }
 
@@ -104,7 +158,7 @@ export default function CharlieSentenceEditorSheet({
           type='button'
           onClick={onClose}
           // min-h-11: measured live at 28px tall — under the 44px minimum.
-          className={`flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-semibold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
+          className={`ml-auto flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-semibold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
         >
           Save →
         </button>
@@ -113,45 +167,39 @@ export default function CharlieSentenceEditorSheet({
       hideCloseButton
     >
       <div className='text-left'>
-        {/* leading-[2.75] (not leading-loose/2): each segment is a
-            two-line-tall block (pill + caption), taller than the
-            surrounding plain text, so the line box needs real headroom or
-            adjacent wrapped lines crowd into the captions above/below
-            them. */}
-        <p className='m-0 text-lg leading-[2.75]'>
-          Investigate rates of{' '}
-          <SentenceSegment
-            label={CHARLIE_TOPIC_LABELS[topicId]}
-            caption='Topic'
-            onClick={onOpenTopicSheet}
-          />
-          {subItems.length > 1 && (
-            // whitespace-nowrap: keeps the parens glued to the pill as one
-            // unit, rather than each being its own inline text node the
-            // line-wrap can split away from the segment it belongs to.
-            <span className='whitespace-nowrap'>
-              {' ('}
-              <SentenceSegment
+        <div className='text-center text-[#383838] text-[1.0625rem]'>
+          <div className='mb-[14px] flex flex-wrap items-start justify-center gap-0'>
+            <TextCell>Investigate rates of</TextCell>
+            <PillCell
+              label={CHARLIE_TOPIC_LABELS[topicId]}
+              caption='Topic'
+              onClick={onOpenTopicSheet}
+            />
+          </div>
+          <div className='mb-[14px] flex flex-wrap items-start justify-center gap-0'>
+            {subItems.length > 1 && (
+              <ParenPillCell
                 label={subItemLabel}
                 caption='Topic breakdown'
                 onClick={onOpenSubItemSheet}
               />
-              {')'}
-            </span>
-          )}{' '}
-          in{' '}
-          <SentenceSegment
-            label={fips.getDisplayName()}
-            caption='Place'
-            onClick={onOpenPlaceSheet}
-          />{' '}
-          by{' '}
-          <SentenceSegment
-            label={demographicLabel}
-            caption='Demographic'
-            onClick={onOpenDemographicSheet}
-          />
-        </p>
+            )}
+            <TextCell>in</TextCell>
+            <PillCell
+              label={fips.getDisplayName()}
+              caption='Place'
+              onClick={onOpenPlaceSheet}
+            />
+          </div>
+          <div className='mb-[20px] flex flex-wrap items-start justify-center gap-0'>
+            <TextCell>by</TextCell>
+            <PillCell
+              label={demographicLabel}
+              caption='Demographic'
+              onClick={onOpenDemographicSheet}
+            />
+          </div>
+        </div>
 
         {/* Informational only — this strip demonstrates that the available
             breakdowns change with topic/sub-item, but it is not itself a
