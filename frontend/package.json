@@ -65,6 +65,7 @@
 		"tsx": "^4.23.1",
 		"typescript": "^5.9.3",
 		"vite": "^8.2.2",
+		"vite-node": "^6.0.0",
 		"vite-plugin-svgr": "^5.2.0",
 		"vitest": "^4.1.6"
 	},
@@ -75,6 +76,8 @@
 		"build:dev": "env-cmd -f .env.dev npm run build",
 		"build": "vite build",
 		"cleanup": "npx @biomejs/biome check --write  --unsafe ./src",
+		"coverage:geo": "cross-env VITE_DEPLOY_CONTEXT=dev VITE_BASE_API_URL=https://dev.healthequitytracker.org vite-node -c scripts/coverage/vite-node.config.ts scripts/coverage/geo-coverage-report.ts",
+		"coverage:geo:prod": "cross-env VITE_DEPLOY_CONTEXT=prod VITE_BASE_API_URL=https://healthequitytracker.org vite-node -c scripts/coverage/vite-node.config.ts scripts/coverage/geo-coverage-report.ts",
 		"cspell": "cspell '../**/*.{ts,tsx,css,md,py}' --no-progress --no-must-find-files --gitignore",
 		"dev": "npm run localhost",
 		"localhost": "env-cmd -f .env.localhost npm run start -- --host & npm run tsc:watch",
