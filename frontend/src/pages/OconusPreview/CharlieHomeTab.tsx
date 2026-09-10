@@ -1,4 +1,6 @@
+import CloseIcon from '@mui/icons-material/Close'
 import { Card, CardActionArea, CardContent } from '@mui/material'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useCharlieFipsCode } from '../../CharlieTopBar'
 import type { DataTypeConfig } from '../../data/config/MetricConfigTypes'
@@ -14,6 +16,129 @@ import {
   useCharlieTopic,
 } from './oconusTopics'
 import { useCharlieHeadlineStat } from './useCharlieHeadlineStat'
+
+const FOCUS_VISIBLE_CLASSES =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
+
+// Permanent (not per-session) dismiss, via localStorage — following the
+// only existing precedent for persisting a UI preference in this codebase
+// (useRecentLocations.tsx's STORAGE_KEY + try/catch read/write pattern),
+// rather than inventing a new mechanism. Permanent because a "how this app
+// works" orientation card is exactly the kind of thing a returning user
+// has already seen — re-showing it every session would be noise, not
+// a useful reminder.
+const GETTING_AROUND_DISMISSED_KEY =
+  'het-charlie-oconus-getting-around-dismissed'
+
+function useCharlieGettingAroundDismissed(): [boolean, () => void] {
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(GETTING_AROUND_DISMISSED_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(GETTING_AROUND_DISMISSED_KEY, 'true')
+    } catch (e) {
+      console.error(
+        'useCharlieGettingAroundDismissed: failed to write to localStorage',
+        e,
+      )
+    }
+    setDismissed(true)
+  }
+
+  return [dismissed, dismiss]
+}
+
+// Mint-tinted orientation card, always shown (no dismiss) — the three
+// paragraphs step down in emphasis on purpose: bold dark green for the
+// factual definition, regular weight for what the app does with it, and
+// smaller/muted for the acronym trivia, which is real but not something a
+// first-time reader needs equal weight on.
+function CharlieHomeIdentityCard() {
+  return (
+    <div className='m-2 rounded-2xl bg-alt-green-tint p-4 text-left shadow-raised'>
+      <div className='flex justify-end'>
+        <span className='rounded-full border border-alert-color bg-standard-warning px-2 py-0.5 font-semibold text-alert-color text-smallest uppercase tracking-wide'>
+          Draft copy
+        </span>
+      </div>
+      <p className='m-0 mt-1 font-bold text-alt-green'>
+        OCONUS means "outside the continental United States" — Hawaiʻi and five
+        territories: American Samoa, Guam, the Northern Mariana Islands, Puerto
+        Rico, and the U.S. Virgin Islands.
+      </p>
+      <p className='m-0 mt-3 text-alt-black'>
+        CHARLIE OCONUS brings HET's health and safety data to these places,
+        which national data views often leave out.
+      </p>
+      <p className='m-0 mt-3 text-alt-dark text-small'>
+        CHARLIE stands for "Community Health Analytics and Responsive Learning
+        Intelligence Engine" — a name carried over from an earlier version of
+        the app.
+      </p>
+    </div>
+  )
+}
+
+const GETTING_AROUND_ITEMS: Array<{ label: string; description: string }> = [
+  { label: 'Home', description: 'a quick look at every place, side by side' },
+  {
+    label: 'Report',
+    description: 'the full picture for one place: maps, charts, data',
+  },
+  {
+    label: 'Compare',
+    description: 'put two places (or two topics) side by side',
+  },
+  { label: 'About', description: 'where this data comes from, and its limits' },
+]
+
+function CharlieHomeGettingAroundCard({
+  onDismiss,
+}: {
+  onDismiss: () => void
+}) {
+  return (
+    <div className='m-2 rounded-2xl bg-alt-white p-4 text-left shadow-raised'>
+      <div className='flex items-start justify-between gap-2'>
+        <h2 className='m-0 font-semibold text-alt-green text-lg'>
+          Getting around
+        </h2>
+        <button
+          type='button'
+          onClick={onDismiss}
+          aria-label='Dismiss getting around'
+          // min-h-11/min-w-11: an icon-only button like this would
+          // otherwise land well under the 44x44 touch-target minimum.
+          className={`-mt-1 -mr-1 flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-alt-dark ${FOCUS_VISIBLE_CLASSES}`}
+        >
+          <CloseIcon fontSize='small' aria-hidden='true' />
+        </button>
+      </div>
+      <ul className='m-0 mt-2 list-none p-0'>
+        {GETTING_AROUND_ITEMS.map(({ label, description }) => (
+          <li key={label} className='mt-3 flex items-start gap-2 first:mt-0'>
+            {/* mt-2: centers the dot on the text's first line rather than
+                the whole (possibly multi-line) row. */}
+            <span
+              className='mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-alt-green'
+              aria-hidden='true'
+            />
+            <p className='m-0'>
+              <span className='font-semibold text-alt-green'>{label}</span>
+              <span className='text-alt-black'> — {description}</span>
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 // "Home" tab inside CharlieShellLayout. One headline stat card per OCONUS
 // geography, for whichever topic is currently selected (the same
@@ -47,11 +172,17 @@ export default function CharlieHomeTab() {
   const [topicId] = useCharlieTopic()
   const dataTypeConfig = CHARLIE_TOPICS[topicId]
   const topicLabel = CHARLIE_TOPIC_LABELS[topicId]
+  const [gettingAroundDismissed, dismissGettingAround] =
+    useCharlieGettingAroundDismissed()
 
   return (
     <div className='flex'>
       <div className='w-full md:w-10/12'>
         <div className='flex w-full flex-col content-center px-4 py-2'>
+          <CharlieHomeIdentityCard />
+          {!gettingAroundDismissed && (
+            <CharlieHomeGettingAroundCard onDismiss={dismissGettingAround} />
+          )}
           {/* p-0: index.css's global h1 rule adds 2rem/1rem top/bottom
               padding sized for full-page titles, not this compact heading. */}
           <h1 className='mt-2 mb-4 p-0 text-left font-semibold text-lg'>
