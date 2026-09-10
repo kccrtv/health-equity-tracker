@@ -20,6 +20,10 @@ import { colors } from '../../styles/tokens/colors'
 import CharlieComparisonOptionList, {
   type ComparisonOption,
 } from './CharlieComparisonOptionList'
+import CharlieJumpToFab from './CharlieJumpToFab'
+import CharlieJumpToSheet from './CharlieJumpToSheet'
+import { useCharlieActiveSection } from './charlieActiveSection'
+import type { CharlieCardId } from './charlieCardAvailability'
 import { getCharlieAxisAvailability } from './charlieDemographic'
 import {
   CHARLIE_TOPIC_IDS,
@@ -154,6 +158,20 @@ export default function CharlieCompareTab() {
   const [compareMode, setCompareMode] = useCharlieCompareMode()
   const [compareTopicId, setCompareTopicId] = useCharlieCompareTopicId(topicId)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [jumpToOpen, setJumpToOpen] = useState(false)
+
+  // Jump To here targets only the primary-geography instance of each
+  // section (the id lives on that half's wrapper below, not the
+  // secondary-geography one) — Compare renders every section twice, and a
+  // second, identical id on the secondary half isn't valid DOM. All 8
+  // sections always render on Compare (no Report-tab-style empty-card
+  // collapsing here), so every id is always "available".
+  const availableSectionIds = new Set<CharlieCardId>(
+    SECTIONS.map((section) => section.id),
+  )
+  const activeSectionId = useCharlieActiveSection(
+    SECTIONS.map((section) => section.id),
+  )
 
   // primaryCode can be '00' (United States) — the top bar's own picker
   // added that as a 7th option, primary-geography-only per scope; Compare's
@@ -234,10 +252,14 @@ export default function CharlieCompareTab() {
 
           {SECTIONS.map(({ id, label, Component }) => (
             <div className='w-full [&_article]:rounded-2xl' key={id}>
-              <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
-                {label} — {primaryLabel}
-              </h2>
-              <Component fips={primaryFips} dataTypeConfig={dataTypeConfig} />
+              {/* id lives on just this primary half — see
+                  availableSectionIds/activeSectionId above for why. */}
+              <div id={id}>
+                <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
+                  {label} — {primaryLabel}
+                </h2>
+                <Component fips={primaryFips} dataTypeConfig={dataTypeConfig} />
+              </div>
               <h2 className='mx-2 mt-4 text-left font-semibold text-lg'>
                 {label} — {secondaryLabel}
               </h2>
@@ -249,6 +271,15 @@ export default function CharlieCompareTab() {
           ))}
         </div>
       </div>
+
+      <CharlieJumpToFab onClick={() => setJumpToOpen(true)} />
+
+      <CharlieJumpToSheet
+        open={jumpToOpen}
+        onClose={() => setJumpToOpen(false)}
+        availableIds={availableSectionIds}
+        activeSectionId={activeSectionId}
+      />
 
       <CharlieBottomSheet
         open={sheetOpen}

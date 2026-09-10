@@ -50,19 +50,29 @@ export default function CharlieJumpToFab({ onClick }: CharlieJumpToFabProps) {
     <button
       type='button'
       onClick={onClick}
-      aria-label='Jump to a section'
+      // No aria-label: "Jump to" is now visible text (Material extended-FAB
+      // pattern, icon + label), so the button's own content is already the
+      // right accessible name — an aria-label here would just duplicate it
+      // (or risk drifting from it) instead of doing anything the visible
+      // text doesn't already do.
       style={{ bottom: tabBarHeight + FAB_GAP_PX }}
-      // h-14 w-14 (56x56px): standard FAB sizing, well over the 44x44
-      // touch-target minimum. z-top (99, from dimensions tokens): keeps
-      // this above ordinary page content; the bottom tab bar is the only
-      // other thing fixed to the viewport, and real clearance (the bottom
-      // offset above) keeps the two from ever overlapping regardless of
-      // stacking order.
-      className={`fixed right-4 z-top flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-0 bg-alt-green text-alt-white shadow-raised ${
+      // h-14 (56px): standard FAB height, well over the 44px touch-target
+      // minimum; width is intrinsic (icon + label + padding) rather than a
+      // fixed square, per Material's extended-FAB shape. z-top (99, from
+      // dimensions tokens): keeps this above ordinary page content; the
+      // bottom tab bar is the only other thing fixed to the viewport, and
+      // real clearance (the bottom offset above) keeps the two from ever
+      // overlapping regardless of stacking order.
+      className={`fixed right-4 z-top flex h-14 cursor-pointer items-center gap-2 rounded-full border-0 bg-alt-green px-5 font-bold text-alt-white shadow-raised ${
         prefersReducedMotion ? '' : 'transition-transform active:scale-95'
       } ${FOCUS_VISIBLE_CLASSES}`}
     >
-      <KeyboardArrowDownIcon aria-hidden='true' />
+      Jump to
+      {/* fontSize='small': matches the original inline Jump To button's
+          chevron exactly (confirmed from CharlieReportHeader.tsx's git
+          history before it was replaced by this FAB) — not the larger
+          default-size arrow this FAB briefly carried. */}
+      <KeyboardArrowDownIcon fontSize='small' aria-hidden='true' />
     </button>
   )
 }
