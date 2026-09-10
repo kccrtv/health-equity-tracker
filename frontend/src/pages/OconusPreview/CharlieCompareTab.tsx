@@ -250,6 +250,23 @@ export default function CharlieCompareTab() {
             </Button>
           </div>
 
+          {/* Placed here — right after the header controls, before any of
+              the 16 rendered card instances below — rather than after the
+              sections loop: a keyboard user tabbing through the page would
+              otherwise have to pass every interactive element in all 16
+              cards first to reach a control that's always on screen. Fixed
+              positioning only affects where it's drawn, not DOM/tab order,
+              so this placement is what actually determines how early it's
+              keyboard-reachable. */}
+          <CharlieJumpToFab onClick={() => setJumpToOpen(true)} />
+
+          <CharlieJumpToSheet
+            open={jumpToOpen}
+            onClose={() => setJumpToOpen(false)}
+            availableIds={availableSectionIds}
+            activeSectionId={activeSectionId}
+          />
+
           {SECTIONS.map(({ id, label, Component }) => (
             <div className='w-full [&_article]:rounded-2xl' key={id}>
               {/* id lives on just this primary half — see
@@ -271,15 +288,6 @@ export default function CharlieCompareTab() {
           ))}
         </div>
       </div>
-
-      <CharlieJumpToFab onClick={() => setJumpToOpen(true)} />
-
-      <CharlieJumpToSheet
-        open={jumpToOpen}
-        onClose={() => setJumpToOpen(false)}
-        availableIds={availableSectionIds}
-        activeSectionId={activeSectionId}
-      />
 
       <CharlieBottomSheet
         open={sheetOpen}
