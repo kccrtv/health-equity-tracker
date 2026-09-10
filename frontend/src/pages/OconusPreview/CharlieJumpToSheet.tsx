@@ -1,3 +1,4 @@
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import DescriptionIcon from '@mui/icons-material/Description'
 import DonutSmallIcon from '@mui/icons-material/DonutSmall'
@@ -7,6 +8,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart'
 import StackedBarChartIcon from '@mui/icons-material/StackedBarChart'
 import TableChartIcon from '@mui/icons-material/TableChart'
 import CharlieBottomSheet from '../../CharlieBottomSheet'
+import { usePrefersReducedMotion } from '../../utils/hooks/usePrefersReducedMotion'
 import type { CharlieCardId } from './charlieCardAvailability'
 
 type IconComponent = typeof RoomIcon
@@ -95,12 +97,25 @@ interface CharlieJumpToSheetProps {
   activeSectionId: CharlieCardId
 }
 
+const FOCUS_VISIBLE_CLASSES =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-alt-green focus-visible:outline-offset-2'
+
 export default function CharlieJumpToSheet({
   open,
   onClose,
   availableIds,
   activeSectionId,
 }: CharlieJumpToSheetProps) {
+  const prefersReducedMotion = usePrefersReducedMotion()
+
+  const handleBackToTop = () => {
+    onClose()
+    window.scrollTo({
+      top: 0,
+      behavior: prefersReducedMotion ? 'instant' : 'smooth',
+    })
+  }
+
   const handleJump = (id: CharlieCardId) => {
     onClose()
     // Deferred one frame so the sheet's closing transition doesn't fight the
@@ -123,6 +138,24 @@ export default function CharlieJumpToSheet({
       ariaLabel='Jump to a section'
     >
       <div className='text-left'>
+        {/* Pinned above the MAPS/CHARTS/TABLE/REFERENCE groups, on a shaded
+            background so it reads as its own distinct action rather than
+            just the first item in the list below — plus a divider under it
+            for a second, unambiguous visual break. */}
+        <button
+          type='button'
+          onClick={handleBackToTop}
+          className={`flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-md border-0 bg-bg-color py-3 pr-3 pl-2 text-left font-semibold text-alt-black ${FOCUS_VISIBLE_CLASSES}`}
+        >
+          <ArrowUpwardIcon
+            fontSize='small'
+            className='text-alt-dark'
+            aria-hidden='true'
+          />
+          <span>Back to top</span>
+        </button>
+        <hr className='mt-3 mb-4 border-divider-gray' />
+
         {JUMP_TO_GROUPS.map((group) => {
           const items = group.items.filter((item) => availableIds.has(item.id))
           if (items.length === 0) return null

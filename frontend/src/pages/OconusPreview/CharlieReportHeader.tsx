@@ -1,7 +1,6 @@
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import EditIcon from '@mui/icons-material/Edit'
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import CharlieBottomSheet from '../../CharlieBottomSheet'
@@ -12,6 +11,7 @@ import {
   type DemographicType,
 } from '../../data/query/Breakdowns'
 import type { Fips } from '../../data/utils/Fips'
+import CharlieJumpToFab from './CharlieJumpToFab'
 import CharlieJumpToSheet from './CharlieJumpToSheet'
 import CharlieLocationSearchSheet from './CharlieLocationSearchSheet'
 import CharlieSentenceEditorSheet from './CharlieSentenceEditorSheet'
@@ -52,12 +52,12 @@ interface CharlieReportHeaderProps {
 
 // Replaces the Report tab's old topic-pill row entirely (not additive): a
 // one-line natural-language summary with a pencil that opens the full
-// sentence editor, a Compare affordance that navigates to the Compare tab
-// rather than opening anything inline, and a Jump To button that opens an
-// on-page sheet. All the actual sheets (editor, its Topic/sub-item/Place
-// pickers, and Jump To) are owned here as one "which sheet is open" state
-// rather than each nesting its own Drawer, so opening one always closes
-// whichever came before it instead of stacking backdrops.
+// sentence editor, and a Compare affordance that navigates to the Compare
+// tab rather than opening anything inline. Jump To no longer lives inline
+// here — CharlieJumpToFab is a fixed floating button that persists through
+// scroll instead, but it still opens the same sheet through this
+// component's own "which sheet is open" state, so opening one sheet still
+// always closes whichever came before it instead of stacking backdrops.
 export default function CharlieReportHeader({
   topicId,
   onTopicChange,
@@ -140,15 +140,9 @@ export default function CharlieReportHeader({
           Compare
           <ArrowOutwardIcon fontSize='small' aria-hidden='true' />
         </button>
-        <button
-          type='button'
-          onClick={() => setOpenSheet('jumpTo')}
-          className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-1 border-alt-green bg-transparent px-4 py-2 font-bold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
-        >
-          Jump to
-          <KeyboardArrowDownIcon fontSize='small' aria-hidden='true' />
-        </button>
       </div>
+
+      <CharlieJumpToFab onClick={() => setOpenSheet('jumpTo')} />
 
       <CharlieSentenceEditorSheet
         open={openSheet === 'editor'}

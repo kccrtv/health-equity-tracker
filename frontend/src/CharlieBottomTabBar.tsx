@@ -14,6 +14,11 @@ const TABS = [
 
 const BASE_PATH = '/oconus-preview'
 
+// Exported so anything fixed to the viewport above this bar (e.g.
+// CharlieJumpToFab) can measure its real rendered height via
+// getElementById + ResizeObserver instead of hardcoding an assumed offset.
+export const CHARLIE_BOTTOM_TAB_BAR_ID = 'charlie-bottom-tab-bar'
+
 export default function CharlieBottomTabBar() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -27,6 +32,7 @@ export default function CharlieBottomTabBar() {
 
   return (
     <BottomNavigation
+      id={CHARLIE_BOTTOM_TAB_BAR_ID}
       showLabels
       value={currentValue}
       onChange={(_event, newValue: string) => {
