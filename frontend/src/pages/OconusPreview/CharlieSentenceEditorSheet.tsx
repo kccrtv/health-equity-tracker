@@ -46,7 +46,7 @@ const FOCUS_VISIBLE_CLASSES =
 function TextCell({ children }: { children: string }) {
   return (
     <div className='flex flex-col items-center'>
-      <div className='flex h-[34px] items-start justify-center border-[#eaeaea] border-b px-1 pt-[6px] pb-0'>
+      <div className='flex h-[34px] items-start justify-center border-[#eaeaea] border-b px-2 pt-[6px] pb-0'>
         <span className='whitespace-nowrap'>{children}</span>
       </div>
     </div>
@@ -95,36 +95,14 @@ function PillCell({
 }) {
   return (
     <div className='flex flex-col items-center'>
-      <div className='flex h-[34px] items-stretch justify-center border-[#eaeaea] border-b px-1'>
+      <div className='flex h-[34px] w-full items-stretch justify-center border-[#eaeaea] border-b px-1'>
         <PillButton label={label} onClick={onClick} />
       </div>
-      <span className='mt-[5px] whitespace-nowrap font-semibold text-[#9a9a9a] text-[0.5625rem] uppercase tracking-[0.04em]'>
-        ({caption})
-      </span>
-    </div>
-  )
-}
-
-// The optional "(Prison)"-style topic-breakdown unit: same pill, but with
-// literal parens inside the same bordered cell so the row's shared baseline
-// still runs underneath them instead of stopping at the pill's edges.
-function ParenPillCell({
-  label,
-  caption,
-  onClick,
-}: {
-  label: string
-  caption: string
-  onClick: () => void
-}) {
-  return (
-    <div className='flex flex-col items-center'>
-      <div className='flex h-[34px] items-stretch justify-center border-[#eaeaea] border-b px-1'>
-        <span className='flex items-center whitespace-nowrap'>
-          (<PillButton label={label} onClick={onClick} />)
-        </span>
-      </div>
-      <span className='mt-[5px] whitespace-nowrap font-semibold text-[#9a9a9a] text-[0.5625rem] uppercase tracking-[0.04em]'>
+      <span
+        className={
+          'mt-[5px] whitespace-nowrap font-semibold text-[#9a9a9a] text-[0.5625rem] uppercase tracking-[0.04em]'
+        }
+      >
         ({caption})
       </span>
     </div>
@@ -178,7 +156,7 @@ export default function CharlieSentenceEditorSheet({
           </div>
           <div className='mb-[14px] flex flex-wrap items-start justify-center gap-0'>
             {subItems.length > 1 && (
-              <ParenPillCell
+              <PillCell
                 label={subItemLabel}
                 caption='Topic breakdown'
                 onClick={onOpenSubItemSheet}
@@ -201,13 +179,34 @@ export default function CharlieSentenceEditorSheet({
           </div>
         </div>
 
+        {/* Informational only, same as the demographic strip below — shows
+            that the topic breakdown options change with the selected topic,
+            but has no selected/highlighted state, isn't tappable, and never
+            sets the topic-breakdown value. The sentence's Topic breakdown
+            chip above is the only thing that does that, via its own sheet. */}
+        <p className='mt-4 mb-2 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
+          {subItems.length} topic breakdown
+          {subItems.length === 1 ? '' : 's'} available for{' '}
+          {CHARLIE_TOPIC_LABELS[topicId]}
+        </p>
+        <div className='flex flex-wrap gap-2'>
+          {subItems.map((config) => (
+            <span
+              key={config.dataTypeId}
+              className='flex items-center rounded-full border border-alt-gray px-3 py-1 text-alt-black text-small'
+            >
+              {config.dataTypeShortLabel ?? config.dataTypeId}
+            </span>
+          ))}
+        </div>
+
         {/* Informational only — this strip demonstrates that the available
             breakdowns change with topic/sub-item, but it is not itself a
             control: it has no selected/highlighted state, isn't tappable,
             and never sets the demographic value. The sentence's Demographic
             chip above is the only thing that does that, via its own sheet. */}
         <p className='mt-4 mb-2 font-semibold text-alt-dark text-smallest uppercase tracking-wide'>
-          {cascade.enabled.length} breakdown
+          {cascade.enabled.length} demographic type
           {cascade.enabled.length === 1 ? '' : 's'} available for {subItemLabel}
         </p>
         <div className='flex flex-wrap gap-2'>

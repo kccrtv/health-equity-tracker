@@ -209,7 +209,7 @@ export default function OconusPreviewPage() {
               }
               return (
                 <div
-                  className='w-full [&_article]:rounded-2xl'
+                  className='w-full [&_article]:rounded-lg'
                   id={id}
                   key={id}
                 >

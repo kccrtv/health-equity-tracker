@@ -55,15 +55,16 @@ export default function CharlieBottomSheet({
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+
           },
           'aria-label': ariaLabel,
         },
       }}
     >
       <div className='mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-alt-gray' />
-      <div className='flex shrink-0 items-start justify-between gap-2 p-4 pb-2 text-left'>
+      <div className='flex shrink-0 items-start justify-end gap-2 p-2 text-left'>
         <div>
-          <h2 className='m-0 font-semibold text-lg'>{title}</h2>
+          <h2 className='m-0 font-semibold text-lg p-2'>{title}</h2>
           {subtitle && (
             <p className='m-0 mt-1 text-alt-dark text-small'>{subtitle}</p>
           )}

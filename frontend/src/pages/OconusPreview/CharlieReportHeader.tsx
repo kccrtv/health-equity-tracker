@@ -1,7 +1,7 @@
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import EditIcon from '@mui/icons-material/Edit'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import CharlieBottomSheet from '../../CharlieBottomSheet'
@@ -107,13 +107,13 @@ export default function CharlieReportHeader({
             styled for full-page titles) isn't what this compact header
             wants; p-0 neutralizes the padding half of it since text-base
             already overrides the font-size half. */}
-        <h1 className='m-0 min-w-0 flex-1 truncate p-0 font-semibold text-base'>
+        <h1 className='my-6 min-w-0 flex-1 p-0 font-bold font-sans-title text-alt-green text-header leading-normal'>
           {summary}
         </h1>
         {/* Bordered box around just the icon (not the whole button) — a
             bare icon read as decorative rather than as its own tappable
             affordance. */}
-        <span className='flex shrink-0 items-center justify-center rounded-md border border-alt-gray p-1'>
+        <span className='flex shrink-0 items-center justify-center rounded-md border border-alt-gray p-3'>
           <EditIcon
             fontSize='small'
             className='text-alt-dark'
@@ -129,26 +129,24 @@ export default function CharlieReportHeader({
         {summary}
       </div>
 
-      <div className='mt-2 flex items-center justify-end gap-4'>
+      <div className='mt-2 flex items-center gap-4'>
         <button
           type='button'
           onClick={goToCompare}
           aria-label='Compare — leaves this page for the Compare tab'
-          title='Compare'
-          // min-h-11/min-w-11: measured live at 20×16px, the smallest
-          // control found in the whole audit — icon-only controls need the
-          // hit area expanded without enlarging the icon itself.
-          className={`flex min-h-11 min-w-11 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
+          // min-h-11: full-width pill button, well over the 44px minimum.
+          className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-1 border-alt-green bg-transparent px-4 py-2 font-bold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
         >
+          Compare
           <ArrowOutwardIcon fontSize='small' aria-hidden='true' />
         </button>
         <button
           type='button'
           onClick={() => setOpenSheet('jumpTo')}
-          className={`flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-medium text-alt-green text-small ${FOCUS_VISIBLE_CLASSES}`}
+          className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-1 border-alt-green bg-transparent px-4 py-2 font-bold text-alt-green ${FOCUS_VISIBLE_CLASSES}`}
         >
           Jump to
-          <ChevronRightIcon fontSize='small' aria-hidden='true' />
+          <KeyboardArrowDownIcon fontSize='small' aria-hidden='true' />
         </button>
       </div>
 
